@@ -1,0 +1,187 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="头文件\SlideFactory">
+      <UniqueIdentifier>{d9ca9f04-e8b9-45d5-b828-6451b4cccc8d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\SlideFactory">
+      <UniqueIdentifier>{7088ee16-bc3f-4411-8bb4-afb466792ba7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\Model">
+      <UniqueIdentifier>{cf6f293f-8f4b-4db7-9cea-91199eccba79}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\Model">
+      <UniqueIdentifier>{0f1ea03e-6f61-44d4-969a-6700afe8ec43}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\tinyxml">
+      <UniqueIdentifier>{b39bf575-7c6b-4db0-9a3b-84bede665b21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\tinyxml">
+      <UniqueIdentifier>{7ef383d1-9ee5-47a5-83e2-8c56acd05f16}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MultiImageRead.cpp">
+      <Filter>源文件\SlideFactory</Filter>
+    </ClCompile>
+    <ClCompile Include="OpenSlideRead.cpp">
+      <Filter>源文件\SlideFactory</Filter>
+    </ClCompile>
+    <ClCompile Include="SdpcSlideRead.cpp">
+      <Filter>源文件\SlideFactory</Filter>
+    </ClCompile>
+    <ClCompile Include="SlideFactory.cpp">
+      <Filter>源文件\SlideFactory</Filter>
+    </ClCompile>
+    <ClCompile Include="SlideRead.cpp">
+      <Filter>源文件\SlideFactory</Filter>
+    </ClCompile>
+    <ClCompile Include="SrpSlideRead.cpp">
+      <Filter>源文件\SlideFactory</Filter>
+    </ClCompile>
+    <ClCompile Include="model.cpp">
+      <Filter>源文件\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="model1.cpp">
+      <Filter>源文件\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="model2.cpp">
+      <Filter>源文件\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="SlideProc.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="commonFunction.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DLLManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="rnn.cpp">
+      <Filter>源文件\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="interface.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyxml.cpp">
+      <Filter>源文件\tinyxml</Filter>
+    </ClCompile>
+    <ClCompile Include="tinystr.cpp">
+      <Filter>源文件\tinyxml</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyxmlerror.cpp">
+      <Filter>源文件\tinyxml</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyxmlparser.cpp">
+      <Filter>源文件\tinyxml</Filter>
+    </ClCompile>
+    <ClCompile Include="SlideQualityCheck.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SlideProc_old.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SlideProc_stable.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="rnn1.cpp">
+      <Filter>源文件\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="model3.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="commonFunction.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MultiImageRead.h">
+      <Filter>头文件\SlideFactory</Filter>
+    </ClInclude>
+    <ClInclude Include="OpenSlideRead.h">
+      <Filter>头文件\SlideFactory</Filter>
+    </ClInclude>
+    <ClInclude Include="SdpcSlideRead.h">
+      <Filter>头文件\SlideFactory</Filter>
+    </ClInclude>
+    <ClInclude Include="SlideFactory.h">
+      <Filter>头文件\SlideFactory</Filter>
+    </ClInclude>
+    <ClInclude Include="SlideRead.h">
+      <Filter>头文件\SlideFactory</Filter>
+    </ClInclude>
+    <ClInclude Include="SrpSlideRead.h">
+      <Filter>头文件\SlideFactory</Filter>
+    </ClInclude>
+    <ClInclude Include="model.h">
+      <Filter>头文件\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="model1.h">
+      <Filter>头文件\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="model2.h">
+      <Filter>头文件\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="types.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SlideProc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ThreadPool.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DLLManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="rnn.h">
+      <Filter>头文件\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="interface.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="tinyxml.h">
+      <Filter>头文件\tinyxml</Filter>
+    </ClInclude>
+    <ClInclude Include="tinystr.h">
+      <Filter>头文件\tinyxml</Filter>
+    </ClInclude>
+    <ClInclude Include="SlideQualityCheck.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="rnn1.h">
+      <Filter>头文件\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="model3.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="rnnPredict.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="txt1.bin">
+      <Filter>资源文件</Filter>
+    </None>
+  </ItemGroup>
+</Project>

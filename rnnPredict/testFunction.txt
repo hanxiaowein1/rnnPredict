@@ -1,0 +1,1349 @@
+
+int main()
+{
+	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+	string savePath = "D:\\TEST_OUTPUT\\rnnPredict\\";
+	//string slidePath = "D:\\TEST_DATA\\mrxs\\1110441 0893050.mrxs";
+	string slidePath = "D:\\TEST_DATA\\srp\\positive\\051300019.srp";
+	//string slidePath = "D:\\TEST_DATA\\svs\\1135189.svs";
+	//string srpPath1 = "D:\\TEST_DATA\\srp\\convertfrom__\\filter\\";
+	string srpPath1 = "Y:\\TCTDATA\\SrpData\\out\\wrong\\";
+	//string srpPath2 = "F:\\sdpc2srp\\";
+	vector<string> srpPath;
+	getFiles(srpPath1, srpPath, "srp");
+	//getFiles(srpPath2, srpPath, "srp");
+	DLLManager manager;
+	string iniPath = "../x64/Release/config.ini";
+	SlideProc slideProc(iniPath.c_str());
+	//for (int i = 0; i < srpPath.size(); i++)
+	//{
+	//	vector<Anno> annos;
+	//	cout << srpPath[i] << " is processing\n";
+	//	string prefix = getFileNamePrefix(&srpPath[i]);
+	//	slideProc.runSlide(srpPath[i].c_str(), annos);
+	//	slideProc.saveResult(savePath, getFileNamePrefix(&srpPath[i]));
+	//}
+	vector<Anno> annos;
+	slideProc.runSlide(slidePath.c_str(), annos);
+	system("pause");
+	return 0;
+}
+
+
+int main(int args, char* argv[])
+{
+	if (args > 2)
+	{
+		cout << "usage: exe IniPath" << endl;
+		return -1;
+	}
+	else if (args == 1)
+	{
+		_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+		string iniPath = "../x64/Release/config.ini";
+		DWORD dirType = GetFileAttributesA(iniPath.c_str());
+		if (dirType == INVALID_FILE_ATTRIBUTES) {
+			cout << "ini file doesn't exist!" << endl;
+			return -1;
+		}
+		startRun(iniPath.c_str());
+		system("pause");
+		return 0;
+	}
+	else
+	{
+		DWORD dirType = GetFileAttributesA(argv[1]);
+		if (dirType == INVALID_FILE_ATTRIBUTES) {
+			cout << "ini file doesn't exist!" << endl;
+			return -1;
+		}
+		startRun(argv[1]);
+		return 0;
+	}
+	return 0;
+}
+
+int main()
+{
+	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+	cv::Mat img = cv::imread("D:\\TEST_DATA\\image_for_test\\12_1.tif");
+	cv::resize(img, img, cv::Size(256, 256));
+	vector<cv::Mat> imgs;
+	imgs.emplace_back(img);
+
+	string model2Path = "D:\\TEST_DATA\\model\\liusibo\\szsq_model2_658_encoder_model.pb";
+	modelConfig conf;
+	conf.height = 256;
+	conf.width = 256;
+	conf.channel = 3;
+	conf.opsInput = "input_1:0";
+	conf.opsOutput.emplace_back("dense_2/Sigmoid:0");
+	conf.opsOutput.emplace_back("global_max_pooling2d_1/Max:0");
+	std::ifstream file(model2Path, std::ios::binary | std::ios::ate);
+	std::streamsize size = file.tellg();
+	//char* buffer = new char[size];
+	std::unique_ptr<char[]> uBuffer(new char[size]);
+	file.seekg(0, std::ios::beg);
+	if (!file.read(uBuffer.get(), size)) {
+		std::cout << "read file to buffer failed" << endl;
+	}
+	model2* model2Handle = new model2(conf, uBuffer.get(), size);
+	vector<Tensor> outputTensor;
+	model2Handle->output(imgs, outputTensor);
+	showTensor(outputTensor[1]);
+	auto output_c = outputTensor[1].tensor<float, 2>();
+	//将outputTensor[1]输出查看是什么
+	for (int i = 0; i < 2048; i++)
+	{
+		cout << output_c(0, i) << " ";
+	}
+	system("pause");
+	return 0;
+}
+
+int main()
+{
+
+	string model1Path = "D:\\TEST_DATA\\model\\liusibo\\szsq_model1_700_36_model_190920_1010.pb";
+	modelConfig conf;
+	conf.height = 512;
+	conf.width = 512;
+	conf.channel = 3;
+	conf.opsInput = "input_1:0";
+	conf.opsOutput.emplace_back("dense_2/Sigmoid:0");
+	conf.opsOutput.emplace_back("conv2d_1/truediv:0");
+	std::ifstream file(model1Path, std::ios::binary | std::ios::ate);
+	std::streamsize size = file.tellg();
+	char* buffer = new char[size];
+	std::unique_ptr<char[]> uBuffer(new char[size]);
+	file.seekg(0, std::ios::beg);
+	if (!file.read(uBuffer.get(), size)) {
+		std::cout << "read file to buffer failed" << endl;
+	}
+	model1* model1Handle = new model1(conf, uBuffer.get(), size);
+
+	vector<model1Result> results = model1Handle->model1Process(imgs);
+
+	system("pause");
+	return 0;
+}
+
+int main()
+{
+	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+	string filepath = "Y:\\fql\\testHW\\";
+	vector<cv::Mat> imgs;
+	for (int i =1 ; i <= 10; i++)
+	{
+		imgs.emplace_back(cv::imread(filepath + to_string(i) + ".tif"));
+	}
+	for (auto& elem : imgs)
+	{
+		GammaCorrection(elem, elem, 0.6f);
+		cv::resize(elem, elem, cv::Size(256, 256));
+	}
+
+	//初始化rnn
+	string rnnParentPath = "D:\\TEST_DATA\\model\\liusibo\\rnn\\";
+	vector<string> rnnPaths;
+	getFiles(rnnParentPath, rnnPaths, "pb");
+	vector<rnn*> rnnHandle;
+	if (rnnPaths.size() != 6) {
+		cout << "rnn model number should be 10\n";
+		return 0;
+	}
+	for (auto iter = rnnPaths.begin(); iter != rnnPaths.end(); iter++)
+	{
+		int place = iter - rnnPaths.begin();
+		//读取模型
+		modelConfig conf;
+		conf.height = 256;//这些配置都无所谓了
+		conf.width = 256;
+		conf.channel = 3;
+		conf.opsInput = "feature_input:0";
+		conf.opsOutput.emplace_back("output/Sigmoid:0");
+		std::ifstream file(*iter, std::ios::binary | std::ios::ate);
+		std::streamsize size = file.tellg();
+		char* buffer = new char[size];
+		file.seekg(0, std::ios::beg);
+		if (!file.read(buffer, size)) {
+			cout << "read file to buffer failed" << endl;
+		}
+		rnn* rnnBase = new rnn(conf, buffer, size);
+		rnnHandle.emplace_back(rnnBase);
+		delete[]buffer;
+	}
+
+
+
+	Tensor tensor10 = outputTensor[1].Slice(0, 10);
+	tensorflow::Tensor tem_tensor_res10(tensorflow::DataType::DT_FLOAT, tensorflow::TensorShape({ 1, 10, 2048}));
+	float* dst1 = tem_tensor_res10.flat<float>().data();
+	float* src1 = tensor10.flat<float>().data();
+	std::memcpy(dst1, src1, 10 * 2048 * sizeof(float));
+	vector<Tensor> outTensor10;
+	rnnHandle[0]->output(tem_tensor_res10, outTensor10);
+	vector<float> score10 = rnnHandle[0]->rnnProcess(outTensor10[0]);
+	system("pause");
+	return 0;
+}
+
+int main(int args, char* argv[])
+{
+	if (args > 2)
+	{
+		cout << "usage: exe IniPath" << endl;
+		return -1;
+	}
+	else if (args == 1)
+	{
+		_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+		string iniPath = "../x64/Release/config.ini";
+		DWORD dirType = GetFileAttributesA(iniPath.c_str());
+		if (dirType == INVALID_FILE_ATTRIBUTES) {
+			cout << "ini file doesn't exist!" << endl;
+			return -1;
+		}
+		startRun(iniPath.c_str());
+		system("pause");
+		return 0;
+	}
+	else
+	{
+		DWORD dirType = GetFileAttributesA(argv[1]);
+		if (dirType == INVALID_FILE_ATTRIBUTES) {
+			cout << "ini file doesn't exist!" << endl;
+			return -1;
+		}
+		startRun(argv[1]);
+		return 0;
+	}
+	return 0;
+}
+
+int main()
+{
+	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+	string slide = "D:\\TEST_DATA\\srp\\test\\tj19062944.srp";
+	string savePath = "D:\\TEST_OUTPUT\\rnnPredict\\";
+	SrpSlideRead srpRead(slide.c_str());
+
+	double mpp = 0.0f;
+	srpRead.getSlideMpp(mpp);
+	double model2Mpp = 0.293f;
+	int model2Height = 256 * (model2Mpp / mpp);
+	int x = 47995 - 256 * (model2Mpp / mpp) / 2;
+	int y = 5251 - 256 * (model2Mpp / mpp) / 2;
+	cv::Mat img;
+	srpRead.getTile(0, x, y, model2Height, model2Height, img);
+	cv::imwrite("D:\\TEST_OUTPUT\\rnnPredict\\test.tif", img);
+	GammaCorrection(img, img, 0.6f);
+	cv::resize(img, img, cv::Size(256, 256));
+	vector<cv::Mat> imgs;
+	imgs.emplace_back(img);
+
+	
+	vector<float> model2Score = model2Handle->model2Process(imgs);
+
+	system("pause");
+	return 0;
+}
+
+
+int main()
+{
+	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+	string savePath = "D:\\TEST_OUTPUT\\rnnPredict\\";
+	//string slidePath = "D:\\TEST_DATA\\mrxs\\1110441 0893050.mrxs";
+	string slidePath = "Y:\\TCTDATA\\SrpData\\out\\wrong\\1909160008_6.srp";
+	//string slidePath = "D:\\TEST_DATA\\svs\\1135189.svs";
+	//string srpPath1 = "D:\\TEST_DATA\\srp\\convertfrom__\\filter\\";
+	string srpPath1 = "Y:\\TCTDATA\\SrpData\\out\\wrong\\";
+	//string srpPath2 = "F:\\sdpc2srp\\";
+	vector<string> srpPath;
+	getFiles(srpPath1, srpPath, "srp");
+	//getFiles(srpPath2, srpPath, "srp");
+	DLLManager manager;
+	string iniPath = "../x64/Release/config.ini";
+	SlideProc slideProc(iniPath.c_str());
+	//for (int i = 0; i < srpPath.size(); i++)
+	//{
+	//	vector<Anno> annos;
+	//	cout << srpPath[i] << " is processing\n";
+	//	string prefix = getFileNamePrefix(&srpPath[i]);
+	//	slideProc.runSlide(srpPath[i].c_str(), annos);
+	//	slideProc.saveResult(savePath, getFileNamePrefix(&srpPath[i]));
+	//}
+	vector<Anno> annos;
+	slideProc.runSlide(slidePath.c_str(), annos);
+	system("pause");
+	return 0;
+}
+
+int main()
+{
+
+	//cv::Mat img = cv::imread("D:\\TEST_DATA\\image_for_test\\12_1.tif");
+	////先搞出来30张图像，送入model2出来tensor
+	//vector<cv::Mat> imgs;
+	//for (int i = 0; i < 30; i++)
+	//{
+	//	imgs.emplace_back(img(cv::Rect(i, i, 256, 256)));
+	//}
+	string imgPath = "D:\\TEST_DATA\\rnnPredict\\rnn30\\";
+	vector<string> imgList;
+	vector<cv::Mat> imgs;
+	getFiles(imgPath, imgList, "tif");
+	for (int i = 0; i < imgList.size(); i++)
+	{
+		imgs.emplace_back(cv::imread(imgList[i]));
+	}
+
+
+
+	//将outputTensor送入rnn中进行处理
+
+
+	//showTensor(tensor10);
+	//Tensor tensor20 = outputTensor[1].Slice(0, 20);
+	//showTensor(tensor20);
+	//Tensor tensor30 = outputTensor[1];
+	showTensor(outputTensor[1]);
+
+	
+//	tensorflow::Tensor tem_tensor_res20(tensorflow::DataType::DT_FLOAT, tensorflow::TensorShape({ 1, 20, 2048 }));
+	tensorflow::Tensor tem_tensor_res30(tensorflow::DataType::DT_FLOAT, tensorflow::TensorShape({ 1, 30, 2048 }));
+
+
+	//float* dst2 = tem_tensor_res20.flat<float>().data();
+	float* dst3 = tem_tensor_res30.flat<float>().data();
+	
+	//float* src2 = tensor20.flat<float>().data();
+	float* src3 = outputTensor[1].flat<float>().data();
+
+	//std::memcpy(dst2, src2, 20 * 2048 * sizeof(float));
+	std::memcpy(dst3, src3, 30 * 2048 * sizeof(float));
+	//std::memcpy((float*)tem_tensor_res30.flat<float>.data(), (float*)tensor30.flat<float>.data(), 30 * 2048 * sizeof(float));
+
+
+	//vector<Tensor> outTensor10_1;
+	//vector<Tensor> outTensor20;
+	//vector<Tensor> outTensor20_1;
+	vector<Tensor> outTensor30;
+	vector<Tensor> outTensor30_1;
+
+	//rnnHandle[1]->output(tem_tensor_res10, outTensor10_1);
+	//rnnHandle[2]->output(tem_tensor_res20, outTensor20);
+	//rnnHandle[3]->output(tem_tensor_res20, outTensor20_1);
+	rnnHandle[4]->output(tem_tensor_res30, outTensor30);
+	rnnHandle[5]->output(tem_tensor_res30, outTensor30_1);
+
+	
+	//vector<float> score10_1 = rnnHandle[1]->rnnProcess(outTensor10_1[0]);
+	//vector<float> score20 = rnnHandle[2]->rnnProcess(outTensor20[0]);
+	//vector<float> score20_1 = rnnHandle[3]->rnnProcess(outTensor20_1[0]);
+	vector<float> score30 = rnnHandle[4]->rnnProcess(outTensor30[0]);
+	vector<float> score30_1 = rnnHandle[5]->rnnProcess(outTensor30_1[0]);
+	system("pause");
+	return 0;
+}
+
+
+int main()
+{
+	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+	string savePath = "D:\\TEST_OUTPUT\\rnnPredict\\";
+	//string slidePath = "D:\\TEST_DATA\\mrxs\\1110441 0893050.mrxs";
+	string slidePath = "D:\\TEST_DATA\\srp\\test\\190422046.srp";
+	//string slidePath = "D:\\TEST_DATA\\svs\\1135189.svs";
+	string iniPath = "../x64/Release/config.ini";
+	SlideProc slideProc(iniPath.c_str());
+	DLLManager manager;
+	vector<Anno> annos;
+	slideProc.runSlide(slidePath.c_str(), annos);
+	//slideProc.saveResult2(savePath, getFileNamePrefix(&slidePath))
+	system("pause");
+	return 0;
+}
+
+
+int main()
+{
+	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+	string savePath = "D:\\TEST_OUTPUT\\rnnPredict\\";
+	//string slidePath = "D:\\TEST_DATA\\mrxs\\1110441 0893050.mrxs";
+	string slidePath = "D:\\TEST_DATA\\rnnPredict\\052910027.srp";
+	//string slidePath = "D:\\TEST_DATA\\svs\\1135189.svs";
+	string iniPath = "../x64/Release/config.ini";
+	SlideProc slideProc(iniPath.c_str());
+	DLLManager manager;
+	vector<Anno> annos;
+	slideProc.runSlide(slidePath.c_str(), annos);
+	slideProc.saveResult2(savePath, getFileNamePrefix(&slidePath));
+	system("pause");
+	return 0;
+}
+
+
+int main()
+{
+	double result = 3 / 2;
+
+	double value = 0.555555;
+	int roundValue = std::round(value);
+	cout << roundValue << endl;
+	system("pause");
+	return 0;
+}
+
+//测试一下openslide 第4图层会读取出来什么东西
+int main()
+{
+	string slidePath = "V:\\TCT\\TCTDATA\\Shengfuyou_1th\\GoldTest\\1110441 0893050.mrxs";
+	OpenSlideRead osRead(slidePath.c_str());
+	int L4Height = 0;
+	int L4Width = 0;
+	osRead.getLevelDimensions(4, L4Width, L4Height);
+	int slideHeight = 0;
+	int slideWidth = 0;
+	int boundX = 0;
+	int boundY = 0;
+	osRead.getSlideBoundX(boundX);
+	osRead.getSlideBoundY(boundY);
+
+	osRead.getSlideHeight(slideHeight);
+	osRead.getSlideWidth(slideWidth);
+	cv::Mat img;
+	int l4boundX = boundX / 16;
+	int l4boundY = boundY / 16;
+	int l4height = slideHeight / 16;
+	int l4width = slideWidth / 16;
+	//osRead.getTile(4, l4boundX, l4boundY, l4width, l4height, img);
+	//osRead.getTile(4, boundX, boundY, slideWidth / 16, slideHeight / 16, img);
+	osRead.getTile(1, 0, 45792, 4096, 4096, img);
+	cv::imwrite("D:\\TEST_OUTPUT\\rnnPredict\\"+ to_string(0) + "_"+to_string(45792)+".tif", img);
+	system("pause");
+	return 0;
+}
+
+
+int main()
+{
+	string slidePath = "D:\\TEST_DATA\\sdpc\\1909050017.sdpc";
+	SdpcSlideRead sdpcRead(slidePath.c_str());
+	SdpcInfo info;
+	info = sdpcRead.getSdpcInfo();
+	system("pause");
+	return 0;
+}
+
+int main()
+{
+	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+	//string slidePath = "D:\\TEST_DATA\\rnnPredict\\old\\";
+	string slidePath2 = "D:\\TEST_DATA\\srp\\normal\\";
+	string slidePath3 = "D:\\TEST_DATA\\srp\\negative\\";
+	string slidePath4 = "D:\\TEST_DATA\\srp\\positive\\";
+	vector<string> slides;
+	//getFiles(slidePath, slides, "srp");
+	getFiles(slidePath2, slides, "srp");
+	getFiles(slidePath3, slides, "srp");
+	getFiles(slidePath4, slides, "srp");
+	string iniPath = "../x64/Release/config.ini";
+	SlideProc slideProc(iniPath.c_str());
+	DLLManager manager;
+	for (int i = 0; i < slides.size(); i++)
+	{
+		time_t now = time(0);
+		cout << "\n" << slides[i] << " start processing" << (char*)ctime(&now);
+		slideProc.runSlide(slides[i].c_str());
+	}
+
+	system("pause");
+	return 0;
+}
+
+
+int main()
+{
+	string slide = "D:\\TEST_DATA\\rnnPredict\\052910027.srp";
+	SrpSlideRead srpRead(slide.c_str());
+	int height = 0;
+	int width = 0;
+	srpRead.getSlideHeight(height);
+	srpRead.getSlideWidth(width);
+	int sHeight = 8096;
+	int sWidth = 8096;
+	int overlap = 256;
+	vector<cv::Rect> rects = iniRects(sHeight, sWidth, height, width, overlap);
+	rects = iniRects(1272, 1272, 8096, 8096, 256, true, true);
+
+	system("pause");
+	return 0;
+}
+//测试以512的倍数读图
+int main()
+{
+	string slidePath = "D:\\TEST_DATA\\rnnPredict\\old\\";
+	vector<string> slides;
+	getFiles(slidePath, slides, "srp");
+	for (int i = 0; i < slides.size(); i++)
+	{
+		cout << slides[i] << " start read";
+		time_t now = time(0);
+		cout << " " << (char*)ctime(&now) << endl;
+		MultiImageRead mImgRead(slides[i].c_str());
+		mImgRead.createThreadPool();
+		mImgRead.setAddTaskThread();
+		int height = 0;
+		int width = 0;
+		mImgRead.getSlideHeight(height);
+		mImgRead.getSlideWidth(width);
+		vector<cv::Rect> rects = iniRects(8096, 8096, height, width);
+		mImgRead.setRects(rects);
+		int count = 0;
+		vector<std::pair<cv::Rect, cv::Mat>> tempRectMats;
+		while (mImgRead.popQueue(tempRectMats))
+		{
+			cout << count << " ";
+			count = count + tempRectMats.size();
+			tempRectMats.clear();
+		}
+		cout << slides[i] << " end read";
+		now = time(0);
+		cout << " " << (char*)ctime(&now) << endl;
+	}
+	system("pause");
+	return 0;
+}
+
+
+int main()
+{
+	
+	GammaCorrection(img, img, 0.6f);
+	cv::resize(img, img, Size(1216, 1936));
+	vector<Rect> myRects = getRects(1216, 1936, 512, 512, 3, 5);
+	vector<cv::Mat> imgs;
+	for (int i = 0; i < 1; i++) {
+		Rect myRect = myRects[i];
+		imgs.push_back(img(myRect));
+	}
+	//srpRead.getTile(0, 1111, 1111, 3022, 4812, img);
+	//for (int i = 0; i < myRects.size(); i++) {
+	//	Rect myRect = myRects[i];
+	//	imgs.push_back(img(myRect));
+	//}
+	//srpRead.getTile(0, 2222, 2222, 3022, 4812, img);
+	//for (int i = 0; i < myRects.size(); i++) {
+	//	Rect myRect = myRects[i];
+	//	imgs.push_back(img(myRect));
+	//}
+	//srpRead.getTile(0, 3333, 3333, 3022, 4812, img);
+	//for (int i = 0; i < myRects.size(); i++) {
+	//	Rect myRect = myRects[i];
+	//	imgs.push_back(img(myRect));
+	//}
+
+
+
+	vector<model1Result> results = model1Handle->model1Process(imgs);
+	time_t now = time(0);
+	cout << "start model1Process " << (char*)ctime(&now) << endl;
+	for (int i = 0; i < 9000; i++)
+	{
+		if (i % 10 == 0)
+		{
+			cout << i << " ";
+		}
+		results = model1Handle->model1Process(imgs);
+	}
+	now = time(0);
+	cout << "\nend model1Process " << (char*)ctime(&now) << endl;
+
+	//for (int i = 0; i < 1000; i++)
+	//{
+	//	output(imgs);
+	//}
+	//now = time(0);
+	//cout << "start output2" << (char*)ctime(&now) << endl;
+	//for (int i = 0; i < 1000; i++)
+	//{
+	//	output2(imgs);
+	//}
+	//now = time(0);
+	//cout << "end output2" << (char*)ctime(&now) << endl;
+	system("pause");
+	return 0;
+}
+
+
+
+
+//测试长条读图加上resize时间
+int main()
+{
+	string slidePath = "D:\\TEST_DATA\\rnnPredict\\old\\";
+	vector<string> slides;
+	getFiles(slidePath, slides, "srp");
+	for (int i = 0; i < slides.size(); i++)
+	{
+		cout << slides[i] << " start read";
+		time_t now = time(0);
+		cout << " " << (char*)ctime(&now) << endl;
+		MultiImageRead mImgRead(slides[i].c_str());
+		mImgRead.createThreadPool();
+		mImgRead.setAddTaskThread();
+		int height = 0;
+		int width = 0;
+		mImgRead.getSlideHeight(height);
+		mImgRead.getSlideWidth(width);
+		vector<cv::Rect> rects = iniRects(1272, width, height, width);
+		mImgRead.setRects(rects);
+		int count = 0;
+		vector<std::pair<cv::Rect, cv::Mat>> tempRectMats;
+		while (mImgRead.popQueue(tempRectMats))
+		{
+			cout << count << " ";
+			count = count + tempRectMats.size();
+			//vector<std::pair<cv::Rect, cv::Mat>> rectMats;
+			//for (auto iter = tempRectMats.begin(); iter != tempRectMats.end(); iter++)
+			//{
+			//	vector<cv::Rect> rects = iniRects(1272, 1272, iter->second.rows, iter->second.cols);
+			//	for (auto iter2 = rects.begin(); iter2 != rects.end(); iter2++)
+			//	{
+			//		std::pair<cv::Rect, cv::Mat> rectMat;
+			//		cv::Rect rect;
+			//		rect.x = iter->first.x + iter2->x;
+			//		rect.y = iter->first.y + iter2->y;
+			//		rect.width = 512;
+			//		rect.height = 512;
+			//		rectMat.first = rect;
+			//		rectMat.second = iter->second(*iter2);
+			//		cv::resize(rectMat.second, rectMat.second, Size(512, 512));
+			//		rectMats.emplace_back(std::move(rectMat));
+			//	}
+			//}
+			tempRectMats.clear();
+		}
+		cout << slides[i] << " end read";
+		now = time(0);
+		cout << " " << (char*)ctime(&now) << endl;
+	}
+	system("pause");
+	return 0;
+}
+
+//测试512读图+resize+归一化
+int main()
+{
+	string slidePath = "D:\\TEST_DATA\\rnnPredict\\old\\";
+	vector<string> slides;
+	getFiles(slidePath, slides, "srp");
+	for (int i = 0; i < slides.size(); i++)
+	{
+		cout << slides[i] << " start read";
+		time_t now = time(0);
+		cout << " " << (char*)ctime(&now) << endl;
+		MultiImageRead mImgRead(slides[i].c_str());
+		mImgRead.createThreadPool();
+		mImgRead.setAddTaskThread();
+		vector<cv::Rect> rects = iniRects(mImgRead);
+		mImgRead.setRects(rects);
+		vector<std::pair<cv::Rect, cv::Mat>> rectMats;
+		int count = 0;
+		while (mImgRead.popQueue(rectMats))
+		{
+			cout << count << " ";
+			count = count + rectMats.size();
+			//for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++)
+			//{
+			//	cv::resize(iter->second, iter->second, Size(512, 512));
+			//}
+			//vector<cv::Mat> imgs;
+			//for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++)
+			//{
+			//	imgs.emplace_back(std::move(iter->second));
+			//}
+			//int start = 0;
+			//int batchsize = 30;
+			//for (int i = 0; i < imgs.size(); i = i + batchsize)
+			//{
+			//	auto iterBegin = imgs.begin() + start;
+			//	vector<cv::Mat>::iterator iterEnd = imgs.end();
+			//	if (iterBegin + batchsize >= iterEnd)
+			//	{
+			//		vector<cv::Mat> tempImgs(iterBegin, iterEnd);
+			//		vector<tensorflow::Tensor> tempTensors;
+			//		output(tempImgs);
+			//	}
+			//	else
+			//	{
+			//		iterEnd = iterBegin + batchsize;
+			//		vector<cv::Mat> tempImgs(iterBegin, iterEnd);
+			//		vector<tensorflow::Tensor> tempTensors;
+			//		output(tempImgs);
+			//		start = i + batchsize;
+			//	}
+			//}
+			rectMats.clear();
+		}
+		cout << slides[i] << " end read";
+		now = time(0);
+		cout << " " << (char*)ctime(&now) << endl;
+	}
+	system("pause");
+	return 0;
+}
+
+int main()
+{
+	string slide = "D:\\TEST_DATA\\rnnPredict\\052910027.srp";
+	string savePath = "D:\\TEST_OUTPUT\\rnnPredict\\";
+	SrpSlideRead srpRead(slide.c_str());
+	cv::Mat img;
+	srpRead.getTile(0, 19068, 9028, 3022, 4812, img);
+	//cv::imwrite(savePath + "test.tif", img);
+	GammaCorrection(img, img, 0.6f);
+	cv::resize(img, img, Size(1216, 1936));
+	vector<Rect> myRects = getRects(1216, 1936, 512, 512, 3, 5);
+	vector<cv::Mat> imgs;
+	for (int i = 0; i < myRects.size(); i++) {
+		Rect myRect = myRects[i];
+		imgs.push_back(img(myRect)/*.clone()*/);
+	}
+
+	
+	
+	system("pause");
+	return 0;
+}
+
+
+
+测试基于原图裁图以及resize
+int main()
+{
+	string imgPath2 = "Y:\\fql\\srpNewPredict\\img_nochange.tif";
+	string savePath = "D:\\TEST_OUTPUT\\rnnPredict\\";
+	cv::Mat img = cv::imread(imgPath2);
+	vector<cv::Mat> imgs;
+	for (int i = 0; i < 10; i++)
+	{
+		cv::Rect rect;
+		rect.x = i*10;
+		rect.y = i*10;
+		rect.width = 500;
+		rect.height = 500;
+		imgs.emplace_back(img(rect));
+	}
+	for (auto iter = imgs.begin(); iter != imgs.end(); iter++)
+	{
+		cv::resize(*iter, *iter, Size(250, 250));
+	}
+	cv::imwrite(savePath + "src.tif", img);
+	for (auto iter = imgs.begin(); iter != imgs.end(); iter++)
+	{
+		int i = iter - imgs.begin();
+		cv::imwrite(savePath + to_string(i) + ".tif", imgs[i]);
+	}
+
+	system("pause");
+	return 0;
+}
+
+用来测试resize pb的效率
+int main()
+{
+	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+	string imgPath2 = "Y:\\fql\\srpNewPredict\\img_nochange.tif";
+	string model1Path = "D:\\TEST_DATA\\model\\resize_szsq_model1_700_36_local.pb";
+	cv::Mat img = cv::imread(imgPath2);
+	vector<cv::Mat> imgs;
+	for (int i = 0; i < 30; i++)
+	{
+		cv::Mat tempImg = img.clone();
+		//改变一下img的像素值，以防编译器优化
+	}
+	//将这些img丢到model1(resize+normalize)中进行预测，测试时间
+	modelConfig conf;
+	conf.height = 512;
+	conf.width = 512;
+	conf.channel = 3;
+	//conf.opsInput = "input_1:0";
+	//conf.opsOutput.emplace_back("dense_2/Sigmoid:0");
+	//conf.opsOutput.emplace_back("conv2d_1/truediv:0");
+	conf.opsInput = "input_1_1:0";
+	conf.opsOutput.emplace_back("model_1/dense_2/Sigmoid:0");
+	conf.opsOutput.emplace_back("model_1/conv2d_1/truediv:0");
+	std::ifstream file(model1Path, std::ios::binary | std::ios::ate);
+	std::streamsize size = file.tellg();
+	//char* buffer = new char[size];
+	std::unique_ptr<char[]> uBuffer(new char[size]);
+	file.seekg(0, std::ios::beg);
+	if (!file.read(uBuffer.get(), size)) {
+		std::cout << "read file to buffer failed" << endl;
+	}
+	model1* model1Handle = new model1(conf, uBuffer.get(), size);
+	//预热
+	for (int i = 0; i < 1; i++)
+	{
+		vector<model1Result> results = model1Handle->model1ProcessResizeInPb(imgs);
+	}
+	time_t now = time(0);
+	cout << " " << (char*)ctime(&now) << endl;
+	int count = 0;
+	for (int i = 0; i < 300; i++)
+	{
+		cout << count << " ";
+		//mat.at<uchar>(row, column, channel) = val;
+		//为了防止编译器优化掉imgs到tensor的copy，每次输入之前都讲imgs改动一个像素
+		for (auto iter = imgs.begin(); iter != imgs.end(); iter++)
+		{
+
+		}
+		vector<model1Result> results = model1Handle->model1ProcessResizeInPb(imgs);
+		count++;
+	}
+	now = time(0);
+	cout << " " << (char*)ctime(&now) << endl;
+	system("pause");
+	return 0;
+}
+
+
+int main()
+{
+	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+	string imgPath2 = "Y:\\fql\\srpNewPredict\\img_nochange.tif";
+	cv::Mat img = imread(imgPath2);
+	tensorflow::Tensor input_tensor(tensorflow::DT_FLOAT, { 2, img.rows, img.cols, 3 });
+	float* ptr = input_tensor.flat<float>().data();
+	cv::Mat tensor_image(img.rows, img.cols, CV_32FC3, ptr);
+	img.convertTo(img, CV_32F);//转为float类型的数组
+	img = (img / 255 - 0.5) * 2;
+	//img.copyTo(tensor_image);
+	std::memcpy(ptr, img.datastart, img.cols * img.rows * 3);
+	std::memcpy(ptr + img.cols * img.rows * 3, img.datastart, img.cols * img.rows * 3);
+
+
+	system("pause");
+	return 0;
+}
+
+int main()
+{
+	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+	string slide = "D:\\TEST_DATA\\rnnPredict\\052910027.srp";
+	string imgParentPath = "D:\\TEST_DATA\\liusiboTestdata\\";
+	string savePath = "D:\\TEST_OUTPUT\\rnnPredict\\";
+
+	string imgPath2 = "Y:\\fql\\srpNewPredict\\img_nochange.tif";
+	//SrpSlideRead srpRead(slide.c_str());
+	cv::Mat img = imread(imgPath2);
+	//srpRead.getTile(0, 30528, 39114, 1272, 1272, img);
+	GammaCorrection(img, img, 0.6f);
+	vector<cv::Mat> imgs;
+	imgs.emplace_back(img);
+
+	string model1Path = "D:\\TEST_DATA\\model\\liusibo\\resize_szsq_model1_700_36_local.pb";
+	
+
+	modelConfig conf;
+	conf.height = 512;
+	conf.width = 512;
+	conf.channel = 3;
+	//conf.opsInput = "input_1:0";
+	//conf.opsOutput.emplace_back("dense_2/Sigmoid:0");
+	//conf.opsOutput.emplace_back("conv2d_1/truediv:0");
+	conf.opsInput = "input_1_1:0";
+	conf.opsOutput.emplace_back("model_1/dense_2/Sigmoid:0");
+	conf.opsOutput.emplace_back("model_1/conv2d_1/truediv:0");
+	std::ifstream file(model1Path, std::ios::binary | std::ios::ate);
+	std::streamsize size = file.tellg();
+	//char* buffer = new char[size];
+	std::unique_ptr<char[]> uBuffer(new char[size]);
+	file.seekg(0, std::ios::beg);
+	if (!file.read(uBuffer.get(), size)) {
+		std::cout << "read file to buffer failed" << endl;
+	}
+	model1 *model1Handle = new model1(conf, uBuffer.get(), size);
+	vector<model1Result> results = model1Handle->model1ProcessResizeInPb(imgs);
+
+
+
+
+	system("pause");
+	return 0;
+}
+
+
+
+
+struct PointScore
+{
+	Point point;
+	float score;
+};
+
+struct conf
+{
+	string model1Path;
+	string model2Path;
+	string rnnPath;
+	string rnnParentPath;
+	string xgParentPath;
+	string slidePath;
+	string savePath;
+	string saveName;
+	string gammaCorrection;
+	float resolution;
+};
+conf MyConfig;
+typedef unsigned long long* handle;
+handle handle1 = nullptr;//model1
+handle handle2 = nullptr;//model2
+handle handle3 = nullptr;//rnn
+handle handle4 = nullptr;//处理model1的输出
+handle handle5 = nullptr;//处理model2的输出
+handle handle6 = nullptr;//处理rnn的输出
+vector<handle> rnnHandle(10, nullptr);
+vector<handle> xgHandle(10, nullptr);
+//送入一串512*512的图像
+vector<model1Result> m1Compute(vector<cv::Mat> &imgs)
+{
+	model *model1Base = (model*)handle1;
+	//model *rnn = (model*)handle3;
+	model1 *m1Obj = (model1*)handle4;
+	//rnnBase *rBase = (rnnBase*)handle6;
+	if (imgs.size() == 0)
+	{
+		return;
+	}
+	vector<Tensor> m1OutTensor;
+	model1Base->output(imgs, m1OutTensor);//m1OutTensor应该变成了两个
+	vector<model1Result> m1Results = m1Obj->output(m1OutTensor);
+	return m1Results;
+}
+
+vector<float> m2Compute(vector<cv::Mat> &imgs)
+{
+	model *model2Base = (model*)handle2;
+	model2 *m2Obj = (model2*)handle5;
+	if (imgs.size() == 0)
+	{
+		return;
+	}
+	vector<Tensor> m2OutTensor;
+	model2Base->output(imgs, m2OutTensor);
+	vector<float> score = m2Obj->output(m2OutTensor[0]);
+	return score;
+}
+
+void m1Process(vector<regionResult> &rResults, sdpcRead &readHandle)
+{
+	vector<cv::Rect> rects = iniRectsModel1();
+	readHandle.enter_mat_upon_point(rects);
+	int model1ComputeNum = rects.size();//保存准备进入model1计算的图像数
+	rect_mat rectMat;
+	int count = 0;
+	int maxOneTimeNum = 15;//model1一次进入15张图像
+	int leftImgsNot15Num = model1ComputeNum % maxOneTimeNum;//最后的不满足15张的剩余图像
+	int imgsIs15Num = model1ComputeNum - leftImgsNot15Num;//能够正好满足15张的图像的数量
+	//先计算完model1，在计算model2	
+	vector<regionResult> rResults;
+	//先计算正好能被maxOneTimeNum完全计算的图像
+	for (int i = 0; i < imgsIs15Num; i = i + maxOneTimeNum)
+	{//一次迭代maxOneTimeNum个图像
+		vector<cv::Mat> imgs;
+		vector<cv::Point> points;
+		bool flag = true;
+		for (int j = 0; j < maxOneTimeNum; j++)
+		{
+			//读取图像
+			if (readHandle.popMat(&rectMat))
+			{
+				imgs.emplace_back(rectMat.mat);
+				Point point;
+				point.x = rectMat.rect.x;
+				point.y = rectMat.rect.y;
+				points.emplace_back(point);
+			}
+			else
+			{
+				flag = false;
+			}
+		}
+		if (!flag)
+		{
+			cout << "something unexpected in pop mat, number is unexpected, process exit\n";//如果读取不出来图像，那么就和我的逻辑不符，程序退出
+			return;
+		}
+		else
+		{
+			//送入model1中进行计算
+			vector<model1Result> m1Results = m1Compute(imgs);
+			if (m1Results.size() != imgs.size())
+			{
+				cout << "model1 compute result not equal to imgs size, process exit\n";
+				return;
+			}
+			//保存结果
+			for (int k = 0; k < m1Results.size(); k++)
+			{
+				regionResult rResult;
+				rResult.point = points[k];
+				rResult.result = m1Results[k];
+				rResults.emplace_back(rResult);
+			}
+		}
+	}
+	//在计算不能被maxOneTimeNum完全计算的图像
+	{
+		vector<cv::Mat> imgs;
+		vector<cv::Point> points;
+		int leftImgsNot15Count = 0;
+		while (readHandle.popMat(&rectMat))
+		{
+			imgs.emplace_back(rectMat.mat);
+			Point point;
+			point.x = rectMat.rect.x;
+			point.y = rectMat.rect.y;
+			points.emplace_back(point);
+			leftImgsNot15Count++;
+		}
+		if (leftImgsNot15Count + 1 != leftImgsNot15Num)
+		{
+			cout << "leftImgsNot15Count shoule be equal to leftImgsNot15Num, process exit\n";
+			return;
+		}
+		else
+		{
+			//送入model1中进行计算
+			vector<model1Result> m1Results = m1Compute(imgs);
+			if (m1Results.size() != imgs.size())
+			{
+				cout << "model1 compute result not equal to imgs size, process exit\n";
+				return;
+			}
+			//保存结果
+			for (int k = 0; k < m1Results.size(); k++)
+			{
+				regionResult rResult;
+				rResult.point = points[k];
+				rResult.result = m1Results[k];
+				rResults.emplace_back(rResult);
+			}
+		}
+
+	}
+}
+
+void m2Process(vector<regionResult> &rResults, sdpcRead &readHandle)
+{
+	vector<cv::Point> m2Points;//把符合大于0.5的model1的结果保存到m2Points中
+	for (auto iter = rResults.begin(); iter != rResults.end(); iter++)
+	{
+		if (iter->result.score > 0.5f)
+		{
+			for (int i = 1; i < iter->result.points.size(); i++)
+			{
+				Point point;
+				point.x = iter->result.points[i].x * (0.586f / MyConfig.resolution);
+				point.y = iter->result.points[i].y * (0.586f / MyConfig.resolution);
+				point = point + iter->point;
+				m2Points.emplace_back(point);
+			}
+
+		}
+	}
+	vector<cv::Rect> rects;//把中心点写成左上角点
+	for (int i = 0; i < m2Points.size(); i++)
+	{
+		cv::Rect rect;
+		rect.x = m2Points[i].x - int(128 * (0.293 / MyConfig.resolution));
+		rect.y = m2Points[i].y - int(128 * (0.293 / MyConfig.resolution));
+		rect.width = 256 * (0.293 / MyConfig.resolution);
+		rect.height = 256 * (0.293 / MyConfig.resolution);
+		rects.emplace_back(rect);
+	}
+	readHandle.enter_mat_upon_point(rects);
+	//先计算图像，后考虑排序
+	int model2ImgSize = rects.size();
+	int count = 0;
+	rect_mat rectMat;
+	int batchsize = 15;//model2一次进入15张图像，到最后，如果不足15张，有多少进多少
+	vector<PointScore> model2PS;
+	while (count < model2ImgSize - 1)
+	{
+		int countOneTime = 0;
+		vector<cv::Mat> imgs;
+		vector<cv::Point> points;
+		while (readHandle.popMat(&rectMat) && countOneTime < batchsize)
+		{
+			Point point;
+			point.x = rectMat.rect.x + int(128 * (0.293 / MyConfig.resolution));//将左上角坐标转为中心点坐标
+			point.y = rectMat.rect.y + int(128 * (0.293 / MyConfig.resolution));
+			points.emplace_back(point);
+			imgs.emplace_back(rectMat.mat);
+			count++;
+		}
+		for (int i = 0; i < imgs.size(); i++)
+		{
+			cv::resize(imgs[i], imgs[i], cv::Size(256, 256));
+		}
+		vector<float> score = m2Compute(imgs);
+		if (score.size() != imgs.size())
+		{
+			cout << "m2Compute score size doesn't equal to imgs size, process exit...\n";
+			return;
+		}
+		for (int i = 0; i < imgs.size(); i++)
+		{
+			PointScore ps;
+			ps.point = points[i];
+			ps.score = score[i];
+			model2PS.emplace_back(ps);
+		}
+	}
+
+	//遍历rResults和modelPS，来更新rResults的score2
+	for (auto iter = rResults.begin(); iter != rResults.end(); iter++)
+	{
+		if (iter->result.score > 0.5)
+		{
+			for (int i = 1; i < iter->result.points.size(); i++)
+			{
+				for (auto iter2 = model2PS.begin(); iter2 != model2PS.end(); iter++)
+				{
+					if (iter->result.points[i] == iter2->point)
+					{
+						iter->score2.emplace_back(iter2->score);
+						break;
+					}
+				}
+			}
+		}
+	}
+}
+
+vector<cv::Rect> iniRectsModel1()
+{
+
+}
+
+float rnnPredict(vector<PointScore> &model2PS, sdpcRead &readHandle)
+{
+	string rnnSavePath = MyConfig.savePath + "\\" + MyConfig.saveName + "\\rnn";
+	auto lambda2 = [](PointScore ps1, PointScore ps2) -> bool {return ps1.score > ps2.score; };
+	std::sort(model2PS.begin(), model2PS.end(), lambda2);
+	if (model2PS.size() > 10)
+	{
+		model2PS.erase(model2PS.begin() + 10, model2PS.end());
+	}
+	vector<rect_mat> rectMats;
+	vector<cv::Rect> rects;
+	rect_mat rectMat;
+	for (int i = 0; i < model2PS.size(); i++)
+	{
+		Rect rect;
+		rect.x = model2PS[i].point.x - int(128 * (0.293 / MyConfig.resolution));
+		rect.y = model2PS[i].point.y - int(128 * (0.293 / MyConfig.resolution));
+		rect.width = 256 * (0.293 / MyConfig.resolution);
+		rect.height = 256 * (0.293 / MyConfig.resolution);
+		rects.emplace_back(rect);
+	}
+	readHandle.enter_mat_upon_point(rects);
+	while (readHandle.popMat(&rectMat))
+	{
+		rectMats.emplace_back(rectMat);
+	}
+	if (rectMats.size() != 10)
+	{
+		cout << "rectMats size wrong...\n";
+		return -1;
+	}
+	//还需要再次排序吧...
+	vector<rect_mat> rectMats2(10);
+	for (int j = 0; j < 10; j++)
+	{
+		int x = rectMats[j].rect.x;
+		int y = rectMats[j].rect.y;
+		for (int k = 0; k < 10; k++)
+		{
+			//咳咳，可能有些rects是重复的，为了避免重复，每一次查完后，将rects的x和y变成不可能被查到的值，比如-1...
+			if (x == rects[k].x && y == rects[k].y)
+			{
+				rects[k].x = -1;
+				rects[k].y = -1;//这样就不可能重复查到了
+				rectMats2[k] = rectMats[j];
+				break;
+			}
+		}
+	}
+	vector<cv::Mat> imgs;
+	//保存前10张图像
+	string rnn10ImgsPath = rnnSavePath + "\\rnn10Imgs";
+	createDirRecursive(rnn10ImgsPath);
+	for (int i = 0; i < rectMats2.size(); i++)
+	{
+		cv::Mat mat;
+		cv::resize(rectMats2[i].mat, mat, cv::Size(256, 256));
+		imgs.emplace_back(mat);
+		cv::imwrite(
+			rnn10ImgsPath + "\\" + to_string(i) +
+			"_" + to_string(rectMats2[i].rect.x) + "_" + to_string(rectMats2[i].rect.y) + "_" +  //左上角坐标
+			to_string(model2PS[i].score) + ".tif", //model2的分数
+			rectMats2[i].mat);
+	}
+	model *model2Base = (model*)handle2;
+	model2 model2Obj;//需要用到
+	vector<Tensor> tensors;
+	model2Base->output(imgs, tensors);
+
+	Tensor rnnInput(tensorflow::DataType::DT_FLOAT,
+		tensorflow::TensorShape({ 1, 10, 2048 }));
+	auto rnnInputData = rnnInput.tensor<float, 3>();
+	auto model2OutData = tensors[1].tensor<float, 2>();
+	//对每一个模型都要500次进行计算
+	vector<float> rnnModelResult;
+	for (int i = 0; i < rnnHandle.size(); i++)
+	{
+		model *rnnBase = (model*)rnnHandle[i];
+		vector<int> order;
+		for (int orderCount = 0; orderCount < 10; orderCount++)
+		{
+			order.emplace_back(orderCount);
+		}
+		vector<float> scoreCount;
+		for (int loopCount = 0; loopCount < 500; loopCount++)
+		{
+			srand(time(0));
+			random_shuffle(order.begin(), order.end());
+			for (int i = 0; i < 10; i++)
+			{
+				for (int j = 0; j < 2048; j++)
+				{
+					rnnInputData(0, order[i], j) = model2OutData(i, j);
+				}
+			}
+			vector<Tensor> rnnOutTensor;
+			rnnBase->output(rnnInput, rnnOutTensor);
+			//将rnnOutTensor转为float类型的score
+			rnn rnnObj;
+			;
+			vector<float> score = rnnObj.output(rnnOutTensor[0]);
+			scoreCount.emplace_back(score[0]);
+		}
+		float sum = std::accumulate(std::begin(scoreCount), std::end(scoreCount), 0.0f);
+		float mean = sum / scoreCount.size();
+		rnnModelResult.emplace_back(mean);
+	}
+	saveAsTxt(rnnModelResult, rnnSavePath + "\\rnnResult.txt");
+	float mean = std::accumulate(std::begin(rnnModelResult), std::end(rnnModelResult), 0.0f) / rnnModelResult.size();
+	return mean;//取前10张图像		
+}
+
+void slideProc(vector<string> &slideList, string suffix, float dstRes)
+{
+	for (auto iterSlide = slideList.begin(); iterSlide != slideList.end(); iterSlide++)
+	{
+		//初始化model1的rects
+		string saveName = getFileNamePrefix(*iterSlide);
+		string suffix = getFileNameSuffix(*iterSlide);
+		cout << endl << "the slide " << saveName + "." + suffix << " is processing" << endl;
+		createDirRecursive(MyConfig.savePath + "\\" + saveName);
+		sdpcRead readHandle(*iterSlide, suffix);
+		
+		vector<regionResult> rResults;
+		m1Process(rResults, readHandle);
+		m2Process(rResults, readHandle);
+	}
+}
+
+//vector<Anno> SlideProc::regionProposal(MultiImageRead& mImgRead)
+//{
+//	//选取最大的model2的分数替换掉model1的分数
+//	vector<regionResult> results = rResults;
+//	for (auto iter = results.begin(); iter != results.end(); iter++)
+//	{
+//		if (iter->score2.size() > 0)
+//		{
+//			auto maxPlace = std::max_element(iter->score2.begin(), iter->score2.end());
+//			iter->result.score = *maxPlace;
+//		}
+//	}
+//	int threshold = model1Height * float(model1Mpp / slideMpp);
+//	//再次对rResults进行排序
+//	sortResultsByScore(results);
+//	//选取前10个
+//	int tmpRecomSize = 0;
+//	if (results.size() > recomNum)
+//	{
+//		tmpRecomSize = recomNum;
+//	}
+//	else
+//	{
+//		tmpRecomSize = results.size();
+//	}
+//	vector<Anno> annos;
+//	//选取前十个区域(但是要保证去重)
+//	//先从上往下去，每取一个放入，即和前面的去重，有重合的就扔掉，继续下一个，直到凑满推荐个数
+//	for (auto iter = results.begin(); iter != results.end(); iter++)
+//	{
+//		Anno anno;
+//		//挑出定位点
+//		int flag = false;
+//		for (int i = 0; i < iter->score2.size(); i++)
+//		{
+//			//如果是被替换过
+//			if (iter->score2[i] == iter->result.score)
+//			{
+//				cv::Point point = iter->result.points[i + 1]*float(model1Mpp / slideMpp) + iter->point;
+//				flag = true;
+//				anno.x = point.x;
+//				anno.y = point.y;
+//				anno.score = iter->result.score;
+//				break;
+//			}
+//		}
+//		if (!flag)
+//		{
+//			//如果没有被替换过，随便选一个定位点
+//			if (iter->result.points.size() > 1)
+//			{
+//				//选择第一个点
+//				cv::Point point = iter->result.points[1] * float(model1Mpp / slideMpp) + iter->point;
+//				anno.x = point.x;
+//				anno.y = point.y;
+//				anno.score = iter->result.score;
+//			}
+//			else
+//			{
+//				//如果没有定位点，取中间值(以后要改，因为我把越界的点删掉了，所以，可能会有边界的点不会被定位到)
+//				cv::Point point;
+//				point.x = float(model1Mpp / slideMpp) * (model1Width / 2) + iter->point.x;
+//				point.y = float(model1Mpp / slideMpp) * (model1Width / 2) + iter->point.y;
+//				anno.x = point.x;
+//				anno.y = point.y;
+//				anno.score = iter->result.score;
+//			}
+//		}
+//		//开始去重
+//		bool flag2 = false;
+//		for (int i = 0; i < annos.size(); i++)
+//		{
+//			if (std::abs(annos[i].x - anno.x) < threshold && std::abs(annos[i].y - anno.y) < threshold)
+//			{
+//				flag2 = true;
+//				break;
+//			}
+//		}
+//		if (flag2)
+//			continue;//如果有重，则继续
+//		annos.emplace_back(anno);
+//		if (annos.size() >= tmpRecomSize)
+//			break;
+//	}
+//	return annos;
+//}
