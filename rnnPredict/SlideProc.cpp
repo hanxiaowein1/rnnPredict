@@ -6,7 +6,7 @@
 SlideProc::SlideProc(const char* iniPath)
 {
 	initialize_handler(iniPath);
-	loadXgdll();
+	//loadXgdll();
 }
 
 SlideProc::~SlideProc()
@@ -24,6 +24,52 @@ void SlideProc::freeMemory()
 	for (int i = 0; i < xgHandle.size(); i++) {
 		free_xgboost(xgHandle[i]);
 	}
+}
+
+bool SlideProc::iniPara2(const char* slide, MultiImageRead& mImgRead)
+{
+	//初始化切片的宽高、mpp、ratio
+	mImgRead.getSlideHeight(slideHeight);
+	mImgRead.getSlideWidth(slideWidth);
+	mImgRead.getSlideMpp(slideMpp);
+	string suffix = getFileNameSuffix(string(slide));
+	if (suffix == "svs")
+		slideMpp = 0.293f;
+	if (slideHeight <= 0 || slideWidth <= 0 || slideMpp <= 0)
+		return false;
+	//再来判断一些不合理的范围
+	if (slideHeight > 1000000 || slideWidth > 1000000 || slideMpp > 1000000)
+		return false;
+	slideRatio = mImgRead.get_ratio();
+
+	//初始化读取model1的level
+	read_level = (model1Mpp / slideMpp) / slideRatio;
+
+	//初始化从哪一个level读取binImg
+	double mySetMpp = 3.77f;//最原始的读取level4的mpp
+	double compLevel = mySetMpp / slideMpp;
+	vector<double> mppList;
+	while (compLevel > 0.1f) {
+		mppList.emplace_back(compLevel);
+		compLevel = compLevel / slideRatio;
+	}
+	//遍历mppList，寻找与1最近的值
+	double closestValue = 1000.0f;
+	for (int i = 0; i < mppList.size(); i++) {
+		if (std::abs(mppList[i] - 1.0f) < closestValue) {
+			closestValue = std::abs(mppList[i] - 1.0f);
+			levelBin = i;
+		}
+	}
+
+	//初始化前景分割的阈值
+	double mySetMpp2 = 0.235747f;//最原始的前景分割的mpp
+	int thre_vol = 150;//最原始的面积阈值，在mySetMpp2上
+	m_thre_vol = thre_vol / (slideMpp / mySetMpp2);
+	int crop_sum = 960;//最原始的从binImg抠图的求和阈值，在mySetMpp2下
+	m_crop_sum = crop_sum / (slideMpp / mySetMpp2);
+	m_crop_sum = m_crop_sum / std::pow(slideRatio, levelBin);
+	return true;
 }
 
 bool SlideProc::iniPara(const char* slide, MultiImageRead& mImgRead)
@@ -289,9 +335,30 @@ cv::Rect SlideProc::point2Rect(int x, int y, float radius, float diameter)
 	return rect;
 }
 
+//vector<PointScore> SlideProc::runModel3Test(vector<cv::Mat>& imgs)
+//{
+//	//开始预测50张图像
+//	vector<model3Result> results = model3Handle->model3Process(imgs);
+//	for (auto& elem : results)
+//	{
+//		elem.iniType();
+//	}
+//	for (auto iter = results.begin(); iter != results.end(); iter++)
+//	{
+//		int place = iter - results.begin();
+//		std::pair<cv::Rect, model3Result> xyResult;
+//		xyResult.first = rectMats[place].first;
+//		xyResult.second = *iter;
+//		xyResults.emplace_back(xyResult);
+//	}
+//	//返回model3
+//	return model3Recom(xyResults);
+//}
+
 vector<PointScore> SlideProc::runModel3(MultiImageRead& mImgRead)
 {
-	vector<Anno> annos = regionProposal(100);
+	mImgRead.setGammaFlag(false);
+	vector<Anno> annos = regionProposal(50);
 	vector<cv::Rect> rects;
 	for (int i = 0; i < annos.size(); i++) {
 		cv::Rect rect;
@@ -338,6 +405,8 @@ vector<PointScore> SlideProc::runModel3(MultiImageRead& mImgRead)
 	//返回model3
 	return model3Recom(xyResults);
 }
+
+
 
 //model3的推荐策略
 vector<PointScore> SlideProc::model3Recom(vector<std::pair<cv::Rect, model3Result>>& xyResults)
@@ -591,7 +660,16 @@ vector<Anno> SlideProc::regionProposal(int recom)
 		anno.y = elem.point.y;
 		anno.score = elem.score;
 		for (auto& elem2 : annos) {
-			if (std::abs(elem2.x - anno.x) < threshold && std::abs(elem2.y - anno.y) < threshold) {
+			//if (std::abs(elem2.x - anno.x) < threshold && std::abs(elem2.y - anno.y) < threshold) {
+			//	flag = true;
+			//	break;
+			//}
+			//这个条件改成两点间的距离
+			int x_dis = std::abs(elem2.x - anno.x);
+			int y_dis = std::abs(elem2.y - anno.y);
+			int dis_square = std::pow(x_dis, 2) + std::pow(y_dis, 2);
+			if (std::pow(dis_square, 0.5f) < threshold)
+			{
 				flag = true;
 				break;
 			}
@@ -894,11 +972,19 @@ void SlideProc::filterBaseOnPoint(vector<PointScore>& PointScores, int threshold
 		bool flag = true;
 		for (auto iter2 = PointScores.begin(); iter2 != PointScores.end(); iter2++) {
 			Point point2 = iter2->point;
-			if (abs(point.x - point2.x) < threshold && abs(point.y - point2.y) < threshold)
+			int x_dis = std::abs(point.x - point2.x);
+			int y_dis = std::abs(point.y - point2.y);
+			int dis_square = std::pow(x_dis, 2) + std::pow(y_dis, 2);
+			if (std::pow(dis_square, 0.5f) < threshold)
 			{
 				flag = false;
 				break;
 			}
+			//if (abs(point.x - point2.x) < threshold && abs(point.y - point2.y) < threshold)
+			//{
+			//	flag = false;
+			//	break;
+			//}
 		}
 		if (flag) {
 			PointScores.emplace_back(*iter);
@@ -1281,7 +1367,7 @@ void SlideProc::saveResult2(string savePath, string saveName)
 	sortResultsByScore(model2PS);
 	filterBaseOnPoint(model2PS, threshold);
 	//sortResultsByScore(model2PS);
-	std::ofstream out(savePath + saveName + ".txt");
+	std::ofstream out(savePath + "\\"+saveName + ".txt");
 	string saveString = "";
 	for (auto& elem : model2PS) {
 		saveString = saveString + to_string(elem.score) + "," + to_string(elem.point.x) + "," + to_string(elem.point.y) + "\n";
@@ -1297,7 +1383,17 @@ void SlideProc::saveImages(vector<PointScore>& pss, int radius, string savePath)
 	for (auto elem : pss)
 	{
 		cv::Mat img;
-		m_srpRead->getTile(0, elem.point.x - radius, elem.point.y - radius, radius * 2, radius * 2, img);
+		//在这里判断边界问题，如果小于零，就归为0处理
+		cv::Point point;
+		if (elem.point.x - radius < 0)
+			point.x = 0;
+		else
+			point.x = elem.point.x - radius;
+		if (elem.point.y - radius < 0)
+			point.y = 0;
+		else
+			point.y = elem.point.y - radius;
+		m_srpRead->getTile(0, point.x, point.y, radius * 2, radius * 2, img);
 		string saveName = to_string(i) + "_" + to_string(elem.point.x) + "_" +
 			to_string(elem.point.y) + "_" + to_string(elem.score) + ".tif";
 		cv::imwrite(savePath + "\\" + saveName, img);
@@ -1324,10 +1420,8 @@ vector<PointScore> SlideProc::anno2PS(vector<Anno>& annos)
 	return ret;
 }
 
-bool SlideProc::runSlide3(const char* slide)
+bool SlideProc::runSlide3(const char* slide, string in_savePath)
 {
-	//levelBin = 4;
-
 	//初始化片子的信息
 	MultiImageRead mImgRead(slide);
 	mImgRead.createThreadPool();
@@ -1370,27 +1464,33 @@ bool SlideProc::runSlide3(const char* slide)
 			m3Results.erase(m3Results.begin() + 10, m3Results.end());
 	}
 	//将model3和model2的图像全部都保存下来进行查看
-	string model2ResultPath = "D:\\TEST_OUTPUT\\rnnPredict\\model2";
-	string model3ResultPath = "D:\\TEST_OUTPUT\\rnnPredict\\model3";
+	string model2ResultPath = in_savePath + "\\model2";
+	string model3ResultPath = in_savePath + "\\model3";
+	string model3InputPath = in_savePath + "\\model3Input";
+	createDirRecursive(model2ResultPath);
+	createDirRecursive(model3ResultPath);
+	createDirRecursive(model3InputPath);
 	annos.clear();
 	annos = regionProposal(10);
 	vector<PointScore> pss = anno2PS(annos);
 	saveImages(pss, 200, model2ResultPath);
-	saveImages(m3Results, 200, model3ResultPath);
+	annos.clear();
+	annos = regionProposal(50);
+	pss = anno2PS(annos);
+	saveImages(pss, 200, model3InputPath);//可能会越界
+	saveImages(m3Results, 200, model3ResultPath);//可能会越界
 	mImgRead.~MultiImageRead();
 }
 
 bool SlideProc::runSlide2(const char* slide)
 {
-	MultiImageRead mImgRead(slide);
-	mImgRead.getSlideHeight(slideHeight);
-	mImgRead.getSlideWidth(slideWidth);
-	
-	mImgRead.getSlideMpp(slideMpp);
-	if (slideHeight == 0 || slideWidth == 0 || slideMpp == 0)
-		return false;
-	slideRatio = mImgRead.get_ratio();
 	levelBin = 4;
+	MultiImageRead mImgRead(slide);
+	mImgRead.createThreadPool();
+	mImgRead.setAddTaskThread();
+	if (!mImgRead.status())
+		return false;
+	iniPara2(slide, mImgRead);
 	string suffix = getFileNameSuffix(string(slide));
 	if(suffix == "srp") {
 		if (m_srpRead != nullptr) {
@@ -1432,22 +1532,21 @@ bool SlideProc::runSlide2(const char* slide)
 			m_osRead = new OpenSlideRead(slide);
 		}
 		if (suffix == "svs") {
+
 			slideMpp = 0.293f;
 			m_osRead->getLevelDimensions(0, slideWidth, slideHeight);
 		}
 
-		levelBin = levelBin / (slideRatio / 2);
 		m_osRead->getTile(
 			levelBin, 0, 0,
 			slideWidth / std::pow(slideRatio, levelBin), slideHeight / std::pow(slideRatio, levelBin), imgL4);
 		threshold_segmentation(imgL4, binImg, levelBin, 20, 150);
 		mImgRead.setGammaFlag(false);		
 	}
+	m_slide = string(slide);
 	rResults.clear();
 	if (slideHeight == 0 || slideWidth == 0 || slideMpp == 0)
 		return false;
-	mImgRead.createThreadPool();
-	mImgRead.setAddTaskThread();
 	time_t now = time(0);
 	cout << "start model1 process: " << (char*)ctime(&now);
 	runModel1(mImgRead);

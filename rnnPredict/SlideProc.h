@@ -120,6 +120,7 @@ private:
 	void runModel2(MultiImageRead& mImgRead);
 	//gxb和mjb的新模型
 	vector<PointScore> runModel3(MultiImageRead& mImgRead);
+	vector<PointScore> runModel3Test(vector<cv::Mat>& imgs);
 	//model3的推荐策略
 	vector<PointScore> model3Recom(vector<std::pair<cv::Rect, model3Result>>& xyResults);
 	//推荐10个区域(选取前10个区域写入到srp文件里面)
@@ -163,6 +164,8 @@ private:
 	bool initialize_binImg();
 	//初始化根据mpp和ration变化而导致各种变化的参数
 	bool iniPara(const char* slide, MultiImageRead& mImgRead);
+	//先在程序中尝试去掉m_srpRead，m_sdpcRead，m_osRead
+	bool iniPara2(const char* slide, MultiImageRead& mImgRead);
 	//以后用得着
 	cv::Rect point2Rect(int x, int y, float radius, float diameter);
 	cv::Point rect2Point(int x, int y, float radius);
@@ -181,7 +184,7 @@ public:
 	//给lab使用
 	bool runSlide2(const char* slide);
 	//新加入model3
-	bool runSlide3(const char* slide);
+	bool runSlide3(const char* slide, string filename);
 	//传入一张切片，开始计算(给xiaoming使用)
 	bool runSlide(const char*slide);
 	//保存model12的结果，用xml表示

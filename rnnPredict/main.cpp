@@ -343,6 +343,38 @@ void output(std::vector<cv::Mat>& imgs)
 	}
 }
 
+//这个是给刘思博的，测试所有切片的，不过model2要改成0.243，model1要改成0.486
+void subTask2(vector<string>& slideList, SlideProc& slideProc, string savePath)
+{
+	for (auto& elem : slideList)
+	{
+		cout << elem << " start processing\n";
+		string filename = getFileNamePrefix(&elem);
+		//在这里为每一个片子单独生成一个文件夹
+		if (!slideProc.runSlide2(elem.c_str()))
+			continue;
+		slideProc.saveResult(savePath, filename);
+		slideProc.saveResult2(savePath, filename);
+	}
+}
+
+//这个是给学姐的model3
+void subTask(vector<string> &slideList, SlideProc &slideProc, string savePath)
+{
+	for (auto& elem : slideList)
+	{
+		cout << elem << " start processing\n";
+		string filename = getFileNamePrefix(&elem);
+		//在这里为每一个片子单独生成一个文件夹
+		string finalSavePath = string(savePath) + "\\" + filename;
+		createDirRecursive(finalSavePath);
+		if (!slideProc.runSlide3(elem.c_str(), finalSavePath))
+			continue;
+		slideProc.saveResult(savePath, filename);
+		slideProc.saveResult2(savePath, filename);
+	}
+}
+
 void startRun(const char* iniPath)
 {
 	DLLManager manager;
@@ -369,47 +401,14 @@ void startRun(const char* iniPath)
 	filterList(srpList, xmlList);
 	filterList(svsList, xmlList);
 	filterList(mrxsList, xmlList);
-	//for (auto& elem : sdpcList)
-	//{
-	//	cout << elem << " start processing\n";
-	//	vector<Anno> annos;
-	//	if (!slideProc.runSlide(elem.c_str(), annos))
-	//		continue;
-	//	string filename = getFileNamePrefix(&elem);
-	//	slideProc.saveResult(string(savePath), filename);
-	//	slideProc.saveResult2(string(savePath), filename);
-	//}
-	//for (auto& elem : svsList)
-	//{
-	//	cout << elem << " start processing\n";
-	//	vector<Anno> annos;
-	//	if (!slideProc.runSlide(elem.c_str(), annos))
-	//		continue;
-	//	string filename = getFileNamePrefix(&elem);
-	//	slideProc.saveResult(string(savePath), filename);
-	//	slideProc.saveResult2(string(savePath), filename);
-	//}
-	for (auto& elem : srpList)
-	{
-		cout << elem << " start processing\n";
-		vector<Anno> annos;
-		if (!slideProc.runSlide(elem.c_str(), annos))
-			continue;
-		string filename = getFileNamePrefix(&elem);
-		slideProc.saveResult(string(savePath), filename);
-		slideProc.saveResult2(string(savePath), filename);
-		slideProc.saveResult3(string(savePath), filename + "_rnnScore");
-	}
-	//for (auto& elem : mrxsList)
-	//{
-	//	cout << elem << " start processing\n";
-	//	vector<Anno> annos;
-	//	if (!slideProc.runSlide(elem.c_str(), annos))
-	//		continue;
-	//	string filename = getFileNamePrefix(&elem);
-	//	slideProc.saveResult(string(savePath), filename);
-	//	slideProc.saveResult2(string(savePath), filename);
-	//}
+
+	vector<string> slideList;
+	slideList.insert(slideList.end(), sdpcList.begin(), sdpcList.end());
+	slideList.insert(slideList.end(), srpList.begin(), srpList.end());
+	slideList.insert(slideList.end(), mrxsList.begin(), mrxsList.end());
+	slideList.insert(slideList.end(), svsList.begin(), svsList.end());
+
+	subTask(slideList, slideProc, savePath);
 }
 
 #include "model3.h"
@@ -441,26 +440,76 @@ void model3Test()
 	model3* model3Handle = model3Config();
 	//测试几张图像
 	vector<cv::Mat> imgs;
-	string imgTest1 = 
-		"D:\\TEST_DATA\\model\\model3\\01__sfy2p__100_0000331-2008056__LSIL__atypical-02__keep__keep__80932__94256__129__137__.jpg";
-	string imgTest2 = 
-		"D:\\TEST_DATA\\model\\model3\\01__sfy2p__100_0000331-2008056__LSIL__typical-01__keep__keep__31396__136656__177__249__.jpg";
-	imgs.emplace_back(cv::imread(imgTest1));
-	imgs.emplace_back(cv::imread(imgTest2));
+	vector<string> imgList;
+	getFiles("G:\\HanWei\\fql\\052800092\\", imgList, "tif");
+	for (auto elem : imgList)
+	{
+		imgs.emplace_back(cv::imread(elem));
+	}
 	vector<model3Result> results = model3Handle->model3Process(imgs);
 	for (auto& elem : results)
 	{
 		elem.iniType();
 	}
+	vector<std::pair<int, model3Result>> sortResults;
+	for (int i = 0; i < results.size(); i++)
+	{
+		std::pair<int, model3Result> sortResult;
+		sortResult.first = i;
+		sortResult.second = results[i];
+		sortResults.emplace_back(sortResult);
+	}
+	auto lambda = [](std::pair<int, model3Result> result1, std::pair<int, model3Result> result2)->bool {
+		if (result1.second.type == result2.second.type)
+		{
+			if (result1.second.scores[result1.second.type] > result2.second.scores[result1.second.type])
+				return true;
+			else
+				return false;
+		}
+		else if (result1.second.type < result2.second.type)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	};
+	std::sort(sortResults.begin(), sortResults.end(), lambda);
+	cout << "balabala" << endl;
 }
 
-int main()
+
+int main(int args, char* argv[])
 {
-	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
-	string slidePath = "D:\\TEST_DATA\\srp\\positive\\051300019.srp";
-	string iniPath = "../x64/Release/config.ini";
-	SlideProc slideProc(iniPath.c_str());
-	slideProc.runSlide3(slidePath.c_str());
-	system("pause");
+	if (args > 2)
+	{
+		cout << "usage: exe IniPath" << endl;
+		return -1;
+	}
+	else if (args == 1)
+	{
+		_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+		string iniPath = "../x64/Release/config.ini";
+		DWORD dirType = GetFileAttributesA(iniPath.c_str());
+		if (dirType == INVALID_FILE_ATTRIBUTES) {
+			cout << "ini file doesn't exist!" << endl;
+			return -1;
+		}
+		startRun(iniPath.c_str());
+		system("pause");
+		return 0;
+	}
+	else
+	{
+		DWORD dirType = GetFileAttributesA(argv[1]);
+		if (dirType == INVALID_FILE_ATTRIBUTES) {
+			cout << "ini file doesn't exist!" << endl;
+			return -1;
+		}
+		startRun(argv[1]);
+		return 0;
+	}
 	return 0;
 }

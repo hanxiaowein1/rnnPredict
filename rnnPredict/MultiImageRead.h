@@ -94,6 +94,9 @@ public:
 	void getSlideMpp(double& mpp);
 	//获取指定level下的宽，高
 	void getLevelDimensions(int level, int& width, int& height);
+	//为了方便起见，在MultiImageRead里面也设置单张图像读取
+	void getTile(int level, int x, int y, int width, int height, cv::Mat& img);
+
 	//获得各个图层的比例
 	int get_ratio();
 	bool status();

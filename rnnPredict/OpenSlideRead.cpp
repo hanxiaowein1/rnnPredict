@@ -53,11 +53,21 @@ int OpenSlideRead::get_os_property(openslide_t *slide, const char* propName)
 void OpenSlideRead::getSlideWidth(int & width)
 {
 	width = get_os_property(osr, "openslide.bounds-width");
+	if (width == 0)
+	{
+		int height = 0;
+		getLevelDimensions(0, width, height);//尝试用getLevelDimensions获取width
+	}
 }
 
 void OpenSlideRead::getSlideHeight(int & height)
 {
 	height = get_os_property(osr, "openslide.bounds-height");
+	if (height == 0)
+	{
+		int width = 0;
+		getLevelDimensions(0, width, height);//尝试用getLevelDimensions获取width
+	}
 }
 
 void OpenSlideRead::getSlideBoundX(int & boundX)

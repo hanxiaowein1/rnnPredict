@@ -1,34 +1,10 @@
-
 int main()
 {
 	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
-	string savePath = "D:\\TEST_OUTPUT\\rnnPredict\\";
-	//string slidePath = "D:\\TEST_DATA\\mrxs\\1110441 0893050.mrxs";
-	string slidePath = "D:\\TEST_DATA\\srp\\positive\\051300019.srp";
-	//string slidePath = "D:\\TEST_DATA\\svs\\1135189.svs";
-	//string srpPath1 = "D:\\TEST_DATA\\srp\\convertfrom__\\filter\\";
-	string srpPath1 = "Y:\\TCTDATA\\SrpData\\out\\wrong\\";
-	//string srpPath2 = "F:\\sdpc2srp\\";
-	vector<string> srpPath;
-	getFiles(srpPath1, srpPath, "srp");
-	//getFiles(srpPath2, srpPath, "srp");
-	DLLManager manager;
-	string iniPath = "../x64/Release/config.ini";
-	SlideProc slideProc(iniPath.c_str());
-	//for (int i = 0; i < srpPath.size(); i++)
-	//{
-	//	vector<Anno> annos;
-	//	cout << srpPath[i] << " is processing\n";
-	//	string prefix = getFileNamePrefix(&srpPath[i]);
-	//	slideProc.runSlide(srpPath[i].c_str(), annos);
-	//	slideProc.saveResult(savePath, getFileNamePrefix(&srpPath[i]));
-	//}
-	vector<Anno> annos;
-	slideProc.runSlide(slidePath.c_str(), annos);
+	model3Test();
 	system("pause");
 	return 0;
 }
-
 
 int main(int args, char* argv[])
 {
@@ -62,6 +38,49 @@ int main(int args, char* argv[])
 	}
 	return 0;
 }
+
+int main()
+{
+	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+	//string slidePath = "D:\\TEST_DATA\\srp\\positive\\051300019.srp";
+	string slidePath = "G:\\HanWei\\sfy1148589 0893178.srp";
+	string iniPath = "../x64/Release/config.ini";
+	SlideProc slideProc(iniPath.c_str());
+	slideProc.runSlide3(slidePath.c_str());
+	system("pause");
+	return 0;
+}
+
+int main()
+{
+	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+	string savePath = "D:\\TEST_OUTPUT\\rnnPredict\\";
+	//string slidePath = "D:\\TEST_DATA\\mrxs\\1110441 0893050.mrxs";
+	string slidePath = "D:\\TEST_DATA\\srp\\positive\\051300019.srp";
+	//string slidePath = "D:\\TEST_DATA\\svs\\1135189.svs";
+	//string srpPath1 = "D:\\TEST_DATA\\srp\\convertfrom__\\filter\\";
+	string srpPath1 = "Y:\\TCTDATA\\SrpData\\out\\wrong\\";
+	//string srpPath2 = "F:\\sdpc2srp\\";
+	vector<string> srpPath;
+	getFiles(srpPath1, srpPath, "srp");
+	//getFiles(srpPath2, srpPath, "srp");
+	DLLManager manager;
+	string iniPath = "../x64/Release/config.ini";
+	SlideProc slideProc(iniPath.c_str());
+	//for (int i = 0; i < srpPath.size(); i++)
+	//{
+	//	vector<Anno> annos;
+	//	cout << srpPath[i] << " is processing\n";
+	//	string prefix = getFileNamePrefix(&srpPath[i]);
+	//	slideProc.runSlide(srpPath[i].c_str(), annos);
+	//	slideProc.saveResult(savePath, getFileNamePrefix(&srpPath[i]));
+	//}
+	vector<Anno> annos;
+	slideProc.runSlide(slidePath.c_str(), annos);
+	system("pause");
+	return 0;
+}
+
 
 int main()
 {

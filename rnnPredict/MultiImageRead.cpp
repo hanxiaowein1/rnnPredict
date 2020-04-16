@@ -499,10 +499,19 @@ void MultiImageRead::getLevelDimensions(int level, int& width, int& height)
 	}
 }
 
+void MultiImageRead::getTile(int level, int x, int y, int width, int height, cv::Mat& img)
+{
+	if (sReads.size() > 0)
+	{
+		sReads[0]->getTile(level, x, y, width, height, img);
+	}
+}
+
 int MultiImageRead::get_ratio()
 {
 	if (sReads.size() > 0)
 	{
+		sReads[0]->ini_ration();
 		return sReads[0]->m_ratio;
 	}
 	return -1;
