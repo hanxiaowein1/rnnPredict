@@ -103,6 +103,9 @@
       <Filter>源文件\Model</Filter>
     </ClCompile>
     <ClCompile Include="model3.cpp">
+      <Filter>源文件\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="Model1Holder.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -171,6 +174,9 @@
       <Filter>头文件\Model</Filter>
     </ClInclude>
     <ClInclude Include="model3.h">
+      <Filter>头文件\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Model1Holder.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

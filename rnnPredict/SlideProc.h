@@ -2,14 +2,15 @@
 
 #ifndef _SLIDEPROC_H_
 #define _SLIDEPROC_H_
-
+#include <ctime>
 #include "model1.h"
 #include "model2.h"
 #include "model3.h"
 #include "rnn.h"
 #include "MultiImageRead.h"
 #include "SrpSlideRead.h"
-#include <ctime>
+#include "Model1Holder.h"
+
 
 /*
 管理者一张切片的计算过程：
@@ -30,6 +31,7 @@ private:
 	function_getPredictValue getPredictValue = nullptr;
 	function_free free_xgboost = nullptr;
 
+	Model1Holder *m1Holder = nullptr;
 	model1 *model1Handle = nullptr;
 	model2* model2Handle = nullptr;
 	model3* model3Handle = nullptr;
@@ -120,7 +122,6 @@ private:
 	void runModel2(MultiImageRead& mImgRead);
 	//gxb和mjb的新模型
 	vector<PointScore> runModel3(MultiImageRead& mImgRead);
-	vector<PointScore> runModel3Test(vector<cv::Mat>& imgs);
 	//model3的推荐策略
 	vector<PointScore> model3Recom(vector<std::pair<cv::Rect, model3Result>>& xyResults);
 	//推荐10个区域(选取前10个区域写入到srp文件里面)

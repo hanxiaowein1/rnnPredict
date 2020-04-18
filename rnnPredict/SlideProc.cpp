@@ -335,26 +335,6 @@ cv::Rect SlideProc::point2Rect(int x, int y, float radius, float diameter)
 	return rect;
 }
 
-//vector<PointScore> SlideProc::runModel3Test(vector<cv::Mat>& imgs)
-//{
-//	//开始预测50张图像
-//	vector<model3Result> results = model3Handle->model3Process(imgs);
-//	for (auto& elem : results)
-//	{
-//		elem.iniType();
-//	}
-//	for (auto iter = results.begin(); iter != results.end(); iter++)
-//	{
-//		int place = iter - results.begin();
-//		std::pair<cv::Rect, model3Result> xyResult;
-//		xyResult.first = rectMats[place].first;
-//		xyResult.second = *iter;
-//		xyResults.emplace_back(xyResult);
-//	}
-//	//返回model3
-//	return model3Recom(xyResults);
-//}
-
 vector<PointScore> SlideProc::runModel3(MultiImageRead& mImgRead)
 {
 	mImgRead.setGammaFlag(false);
@@ -1441,7 +1421,9 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 
 	time_t now = time(0);
 	cout << "start model1 process: " << (char*)ctime(&now);
-	runModel1(mImgRead);
+	//runModel1(mImgRead);
+	rResults = m1Holder->runModel1(mImgRead);
+
 	sortResultsByCoor(rResults);
 	now = time(0);
 	cout << "start model2 process: " << (char*)ctime(&now);

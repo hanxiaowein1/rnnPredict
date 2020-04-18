@@ -66,29 +66,26 @@ void SlideProc::rnnConfig(string rnnParentPath)
 
 void SlideProc::model1Config(string model1Path)
 {
-	modelConfig conf;
-	conf.height = 512;
-	conf.width = 512;
-	conf.channel = 3;
-	conf.opsInput = "input_1:0";
-	conf.opsOutput.emplace_back("dense_2/Sigmoid:0");
-	conf.opsOutput.emplace_back("conv2d_1/truediv:0");
+	//modelConfig conf;
+	//conf.height = 512;
+	//conf.width = 512;
+	//conf.channel = 3;
+	//conf.opsInput = "input_1:0";
+	//conf.opsOutput.emplace_back("dense_2/Sigmoid:0");
+	//conf.opsOutput.emplace_back("conv2d_1/truediv:0");
 
-	//conf.opsInput = "input_1_1:0";
-	//conf.opsOutput.emplace_back("model_1/dense_2/Sigmoid:0");
-	//conf.opsOutput.emplace_back("model_1/conv2d_1/truediv:0");
-	std::ifstream file(model1Path, std::ios::binary | std::ios::ate);
-	std::streamsize size = file.tellg();
-	//char* buffer = new char[size];
-	std::unique_ptr<char[]> uBuffer(new char[size]);
-	file.seekg(0, std::ios::beg);
-	if (!file.read(uBuffer.get(), size)) {
-		std::cout << "read file to buffer failed" << endl;
-	}
-	model1Handle = new model1(conf, uBuffer.get(), size);
-	model1Mpp = model1Handle->getM1Resolution();
-	model1Height = conf.height;
-	model1Width = conf.width;
+	//std::ifstream file(model1Path, std::ios::binary | std::ios::ate);
+	//std::streamsize size = file.tellg();
+	////char* buffer = new char[size];
+	//std::unique_ptr<char[]> uBuffer(new char[size]);
+	//file.seekg(0, std::ios::beg);
+	//if (!file.read(uBuffer.get(), size)) {
+	//	std::cout << "read file to buffer failed" << endl;
+	//}
+	//model1Handle = new model1(conf, uBuffer.get(), size);
+	model1Mpp = 0.586f;
+	model1Height = 512;
+	model1Width = 512;
 }
 
 void SlideProc::model2Config(string model2Path)
@@ -158,6 +155,7 @@ void SlideProc::initialize_handler(const char* iniPath)
 	//GetPrivateProfileString(group, pbFile_n_7, "default", xgParentPath, MAX_PATH, iniPath);
 
 	model1Config(string(model1Path));
+	m1Holder = new Model1Holder(model1Path);
 	model2Config(string(model2Path));
 	model3Config(string(model3Path));
 	rnnConfig(string(rnnParentPath));

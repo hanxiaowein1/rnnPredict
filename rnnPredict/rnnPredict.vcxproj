@@ -126,6 +126,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="model.cpp" />
     <ClCompile Include="model1.cpp" />
+    <ClCompile Include="Model1Holder.cpp" />
     <ClCompile Include="model2.cpp" />
     <ClCompile Include="model3.cpp" />
     <ClCompile Include="MultiImageRead.cpp" />
@@ -151,6 +152,7 @@
     <ClInclude Include="interface.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="model1.h" />
+    <ClInclude Include="Model1Holder.h" />
     <ClInclude Include="model2.h" />
     <ClInclude Include="model3.h" />
     <ClInclude Include="MultiImageRead.h" />
