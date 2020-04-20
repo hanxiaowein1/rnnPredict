@@ -10,7 +10,7 @@
 #include "MultiImageRead.h"
 #include "SrpSlideRead.h"
 #include "Model1Holder.h"
-
+#include "Model2Holder.h"
 
 /*
 管理者一张切片的计算过程：
@@ -32,6 +32,7 @@ private:
 	function_free free_xgboost = nullptr;
 
 	Model1Holder *m1Holder = nullptr;
+	Model2Holder* m2Holder = nullptr;
 	model1 *model1Handle = nullptr;
 	model2* model2Handle = nullptr;
 	model3* model3Handle = nullptr;

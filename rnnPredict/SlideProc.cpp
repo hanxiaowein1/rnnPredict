@@ -1427,7 +1427,8 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 	sortResultsByCoor(rResults);
 	now = time(0);
 	cout << "start model2 process: " << (char*)ctime(&now);
-	runModel2(mImgRead);
+	//runModel2(mImgRead);
+	m2Holder->runModel2(mImgRead, rResults);
 	sortResultsByCoor(rResults);
 
 	vector<Anno> annos = regionProposal(30);

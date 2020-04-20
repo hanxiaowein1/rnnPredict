@@ -90,29 +90,25 @@ void SlideProc::model1Config(string model1Path)
 
 void SlideProc::model2Config(string model2Path)
 {
-	modelConfig conf;
-	conf.height = 256;
-	conf.width = 256;
-	conf.channel = 3;
-	conf.opsInput = "input_1:0";
-	conf.opsOutput.emplace_back("dense_2/Sigmoid:0");
-	conf.opsOutput.emplace_back("global_max_pooling2d_1/Max:0");
-
+	//modelConfig conf;
+	//conf.height = 256;
+	//conf.width = 256;
+	//conf.channel = 3;
 	//conf.opsInput = "input_1:0";
-	//conf.opsOutput.emplace_back("model_1/dense_2/Sigmoid:0");
-	//conf.opsOutput.emplace_back("model_1/global_max_pooling2d_1/Max:0");
-	std::ifstream file(model2Path, std::ios::binary | std::ios::ate);
-	std::streamsize size = file.tellg();
-	//char* buffer = new char[size];
-	std::unique_ptr<char[]> uBuffer(new char[size]);
-	file.seekg(0, std::ios::beg);
-	if (!file.read(uBuffer.get(), size)) {
-		std::cout << "read file to buffer failed" << endl;
-	}
-	model2Handle = new model2(conf, uBuffer.get(), size);
-	model2Mpp = model2Handle->getM2Res();
-	model2Height = conf.height;
-	model2Width = conf.width;
+	//conf.opsOutput.emplace_back("dense_2/Sigmoid:0");
+	//conf.opsOutput.emplace_back("global_max_pooling2d_1/Max:0");
+
+	//std::ifstream file(model2Path, std::ios::binary | std::ios::ate);
+	//std::streamsize size = file.tellg();
+	//std::unique_ptr<char[]> uBuffer(new char[size]);
+	//file.seekg(0, std::ios::beg);
+	//if (!file.read(uBuffer.get(), size)) {
+	//	std::cout << "read file to buffer failed" << endl;
+	//}
+	//model2Handle = new model2(conf, uBuffer.get(), size);
+	model2Mpp = 0.293f;
+	model2Height = 256;
+	model2Width = 256;
 }
 
 void SlideProc::model3Config(string model3Path)
@@ -157,6 +153,7 @@ void SlideProc::initialize_handler(const char* iniPath)
 	model1Config(string(model1Path));
 	m1Holder = new Model1Holder(model1Path);
 	model2Config(string(model2Path));
+	m2Holder = new Model2Holder(model2Path);
 	model3Config(string(model3Path));
 	rnnConfig(string(rnnParentPath));
 	//xgConfig(string(xgParentPath));
