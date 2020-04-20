@@ -1434,7 +1434,9 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 	vector<Anno> annos = regionProposal(30);
 
 	//在这里测试一下model3
-	vector<PointScore> m3Results = runModel3(mImgRead);
+	vector<Anno> annos_for_m3 = regionProposal(50);
+	vector<PointScore> m3Results = m3Holder->runModel3(mImgRead, annos_for_m3);
+	//vector<PointScore> m3Results = runModel3(mImgRead);
 	if (m3Results.size() > 10)
 		m3Results.erase(m3Results.begin() + 10, m3Results.end());
 	else

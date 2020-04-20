@@ -11,7 +11,7 @@ private:
 public:
 	model3();
 	model3(modelConfig config, char* buffer, int size);
-	~model3();
+	~model3() {};
 	
 	//因为这个里面既有类别，又有分数，所以可以用分数或者结构体存储
 	vector<model3Result> resultOutput(const Tensor& tensor);
