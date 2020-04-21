@@ -10,6 +10,7 @@ public:
 	Model2Holder(string model2Path);
 	~Model2Holder();
 	void runModel2(MultiImageRead& mImgRead, vector<regionResult>& rResults);
+	void model2Process(vector<cv::Mat>& imgs, vector<Tensor>& tensors);
 private:
 	void enterModel2Queue(MultiImageRead& mImgRead);
 	bool popModel2Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);

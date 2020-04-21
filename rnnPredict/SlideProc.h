@@ -22,23 +22,10 @@
 class SlideProc
 {
 private:
-	//xgdll的相关函数
-	HINSTANCE xgDll = nullptr;
-	typedef handle(*function_initialize)(string);
-	typedef void(*function_free)(handle);
-	typedef float(*function_getPredictValue)(std::vector<float>&, std::vector<float>&, handle);//得到预测值
-	function_initialize initialize_xgboost = nullptr;
-	function_getPredictValue getPredictValue = nullptr;
-	function_free free_xgboost = nullptr;
-
 	Model1Holder *m1Holder = nullptr;
 	Model2Holder* m2Holder = nullptr;
 	Model3Holder* m3Holder = nullptr;
-	model1 *model1Handle = nullptr;
-	model2* model2Handle = nullptr;
-	model3* model3Handle = nullptr;
 	vector<rnn*> rnnHandle;
-	vector<handle> xgHandle;
 	vector<regionResult> rResults;
 	int recomNum = 30;
 	string m_slide;
@@ -62,21 +49,14 @@ private:
 
 	std::condition_variable queue_cv1;
 	std::condition_variable queue_cv2;
-	std::condition_variable tensor_queue_cv;
 	std::condition_variable tensor_queue_cv2;
 	int model1_batchsize = 20;
 	int model2_batchsize = 30;
 	std::mutex queue1Lock;
 	std::mutex queue2Lock;
-	std::mutex tensor_queue_lock;
 	std::mutex tensor_queue_lock2;
 	std::atomic<bool> enterFlag1 = false;
 	std::atomic<bool> enterFlag2 = false;
-	/*std::vector<std::atomic<bool>> enterFlag3;*/
-	std::atomic<bool> enterFlag3 = false;
-	std::atomic<bool> enterFlag4 = false;
-	std::atomic<bool> enterFlag5 = false;
-	std::atomic<bool> enterFlag6 = false;
 
 	std::atomic<bool> enterFlag7 = false;
 	std::atomic<bool> enterFlag8 = false;
@@ -84,7 +64,6 @@ private:
 	std::atomic<bool> enterFlag10 = false;
 	queue<std::pair<cv::Rect, cv::Mat>> model1Queue;//用来保存从多线程读图之后然后在进行相关操作的图像
 	queue<std::pair<cv::Rect, cv::Mat>> model2Queue;
-	queue<std::pair<vector<cv::Rect>, Tensor>> tensor_queue;
 	queue<std::pair<vector<cv::Rect>, Tensor>> tensor_queue2;
 
 	//裁取的宽高信息
@@ -103,10 +82,7 @@ private:
 	void initialize_handler(const char* iniPath);
 	void model1Config(string model1Path);
 	void model2Config(string model2Path);
-	void model3Config(string model3Path);
 	void rnnConfig(string rnnParentPath);
-	void loadXgdll();
-	void xgConfig(string xgParentPath);
 	void freeMemory();
 	//用来初始化model1在全图中的框框
 	vector<cv::Rect> iniRects(MultiImageRead& mImgRead);
@@ -120,19 +96,12 @@ private:
 	vector<cv::Rect> get_rects_slide(MultiImageRead& mImgRead);
 	//针对model1在一个块中的裁图
 	vector<cv::Rect> iniRects(int sHeight, int sWidth, int height, int width, int overlap, bool flag_right, bool flag_down);
-	void runModel1(MultiImageRead &mImgRead);
-	void runModel2(MultiImageRead& mImgRead);
-	//gxb和mjb的新模型
-	vector<PointScore> runModel3(MultiImageRead& mImgRead);
-	//model3的推荐策略
-	vector<PointScore> model3Recom(vector<std::pair<cv::Rect, model3Result>>& xyResults);
 	//推荐10个区域(选取前10个区域写入到srp文件里面)
 	vector<Anno> regionProposal(int recom);
 	float runRnn(vector<Anno>& anno, MultiImageRead& mImgRead);
 	float runRnnThread(int i, Tensor &inputTensor);
 	//改成了前10，前20，前30的tensor的分数
 	float runRnnThread2(int i, Tensor& inputTensor);
-	float runXgboost();
 	void sortResultsByCoor(vector<regionResult>& results);
 	void sortResultsByScore(vector<regionResult>& results);
 	void sortResultsByScore(vector<PointScore>& pss);
@@ -142,28 +111,13 @@ private:
 	//从mImgRead读取一个512块进行处理
 	void enterModel1Queue(MultiImageRead& mImgRead);
 	void enterModel2Queue(MultiImageRead& mImgRead);
-	void enterModel2Queue2(std::atomic<bool>& flag, MultiImageRead& mImgRead);
 	//从mImgRead读取一个长条进行处理
 	void enterModel1Queue2(MultiImageRead& mImgRead);
-	//读取长条之后转为tensor
-	void enterModel1Queue3(std::atomic<bool> &flag, MultiImageRead& mImgRead);
-	//读取8192*8192的图之后转为tensor
-	void enterModel1Queue4(std::atomic<bool>& flag, MultiImageRead& mImgRead);
-	//以batchsize为阈值，将imgs放到tensors里面，每batchsize的图像放到一个tensors里面
-	void Mats2Tensors(vector<cv::Mat> &imgs, vector<Tensor> &tensors, int batchsize);
-	void Mats2Tensors(vector<std::pair<cv::Rect, cv::Mat>>& rectMats, vector<std::pair<vector<cv::Rect>, Tensor>> & rectsTensors, int batchsize);
-	void normalize(vector<cv::Mat>& imgs, Tensor& tensor);
-	//model2无需从全片上扣取一个长条
-	//void enterModel2Queue2(MultiImageRead& mImgRead);
 	bool popModel1Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);//从本队列中读图
 	bool popModel1Queue(vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors);
-	bool checkFlags();
 	bool checkFlags2();
 	bool popModel2Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
 	bool popModel2Queue(vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors);
-	//关于图像前景分割（为了去除不用计算的部分）
-	void threshold_segmentation(cv::Mat& img, cv::Mat& binImg, int level, int thre_col, int thre_vol);
-	void remove_small_objects(cv::Mat& binImg, int thre_vol);
 	bool initialize_binImg();
 	//初始化根据mpp和ration变化而导致各种变化的参数
 	bool iniPara(const char* slide, MultiImageRead& mImgRead);
@@ -175,7 +129,6 @@ private:
 	//对两个Ps集合去重
 	void removeDuplicatePS(vector<PointScore>& pss1, vector<PointScore>& pss2, int threshold);
 	void saveImages(vector<PointScore>& pss, int radius, string savePath);
-	void saveImages(MultiImageRead& mImgRead, vector<cv::Rect>& rects);
 	vector<PointScore> anno2PS(vector<Anno>& annos);
 public:
 	//根据ini文件初始化模型
@@ -183,13 +136,13 @@ public:
 	//释放掉模型
 	~SlideProc();
 	//华乐要求将annos给传出去，而不是我这边写到srp里面
-	bool runSlide(const char* slide, vector<Anno>& annos);
+	//bool runSlide(const char* slide, vector<Anno>& annos);
 	//给lab使用
-	bool runSlide2(const char* slide);
+	//bool runSlide2(const char* slide);
 	//新加入model3
 	bool runSlide3(const char* slide, string filename);
 	//传入一张切片，开始计算(给xiaoming使用)
-	bool runSlide(const char*slide);
+	//bool runSlide(const char*slide);
 	//保存model12的结果，用xml表示
 	void saveResult(string savePath, string saveName);
 	//保存model2的去重之后的结果，分数从大到小

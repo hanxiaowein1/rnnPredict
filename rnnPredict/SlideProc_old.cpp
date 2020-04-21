@@ -107,62 +107,62 @@ vector<cv::Rect> SlideProc::iniRects(int sHeight, int sWidth, int height, int wi
 	return rects;
 }
 
-vector<cv::Rect> SlideProc::iniRects(MultiImageRead& mImgRead)
-{
-	int sHeight = model1Handle->getModelHeight();
-	int sWidth = model1Handle->getModelWidth();
-	double mpp = 0.0f;
-	mImgRead.getSlideMpp(mpp);
-	sHeight = sHeight * float(model1Handle->getM1Resolution() / mpp);
-	sWidth = sWidth * float(model1Handle->getM1Resolution() / mpp);
-	int height = 0;
-	mImgRead.getSlideHeight(height);
-	int width = 0;
-	mImgRead.getSlideWidth(width);
-	vector<cv::Rect> rects;
-	if (height == 0 || width == 0 || sHeight == 0 || sWidth == 0) {
-		cout << "iniRects: some parameters should not be zero\n";
-		return rects;
-	}
-	if (height < sHeight || width < sWidth) {
-		cout << "size to be cropped should bigger \n";
-		return rects;
-	}
-	int xNum = 0;//水平方向的裁剪个数
-	int yNum = 0;//垂直方向的裁剪个数
-	int overlap = sHeight * (0.25f);
-	if (sHeight <= overlap || sWidth <= overlap) {
-		cout << "sHeight and sWidth seems to small\n";
-		return rects;
-	}
-	yNum = 1 + (height - sHeight) / (sHeight - overlap);
-	xNum = 1 + (width - sWidth) / (sWidth - overlap);
-	vector<int> xStart;
-	vector<int> yStart;
-	for (int i = 0; i < xNum; i++) {
-		xStart.emplace_back((sWidth - overlap) * i);
-	}
-	for (int i = 0; i < yNum; i++) {
-		yStart.emplace_back((sHeight - overlap) * i);
-	}
-	int xLeft = width - xNum * sWidth;
-	int yLeft = height - yNum * sHeight;
-	if (xLeft != 0)
-		xStart.emplace_back(width - sWidth - 1);
-	if (yLeft != 0)
-		yStart.emplace_back(height - sHeight - 1);
-	for (int i = 0; i < yStart.size(); i++) {
-		for (int j = 0; j < xStart.size(); j++) {
-			cv::Rect rect;
-			rect.x = xStart[j];
-			rect.y = yStart[i];
-			rect.width = sWidth;
-			rect.height = sHeight;
-			rects.emplace_back(rect);
-		}
-	}
-	return rects;
-}
+//vector<cv::Rect> SlideProc::iniRects(MultiImageRead& mImgRead)
+//{
+//	int sHeight = model1Handle->getModelHeight();
+//	int sWidth = model1Handle->getModelWidth();
+//	double mpp = 0.0f;
+//	mImgRead.getSlideMpp(mpp);
+//	sHeight = sHeight * float(model1Handle->getM1Resolution() / mpp);
+//	sWidth = sWidth * float(model1Handle->getM1Resolution() / mpp);
+//	int height = 0;
+//	mImgRead.getSlideHeight(height);
+//	int width = 0;
+//	mImgRead.getSlideWidth(width);
+//	vector<cv::Rect> rects;
+//	if (height == 0 || width == 0 || sHeight == 0 || sWidth == 0) {
+//		cout << "iniRects: some parameters should not be zero\n";
+//		return rects;
+//	}
+//	if (height < sHeight || width < sWidth) {
+//		cout << "size to be cropped should bigger \n";
+//		return rects;
+//	}
+//	int xNum = 0;//水平方向的裁剪个数
+//	int yNum = 0;//垂直方向的裁剪个数
+//	int overlap = sHeight * (0.25f);
+//	if (sHeight <= overlap || sWidth <= overlap) {
+//		cout << "sHeight and sWidth seems to small\n";
+//		return rects;
+//	}
+//	yNum = 1 + (height - sHeight) / (sHeight - overlap);
+//	xNum = 1 + (width - sWidth) / (sWidth - overlap);
+//	vector<int> xStart;
+//	vector<int> yStart;
+//	for (int i = 0; i < xNum; i++) {
+//		xStart.emplace_back((sWidth - overlap) * i);
+//	}
+//	for (int i = 0; i < yNum; i++) {
+//		yStart.emplace_back((sHeight - overlap) * i);
+//	}
+//	int xLeft = width - xNum * sWidth;
+//	int yLeft = height - yNum * sHeight;
+//	if (xLeft != 0)
+//		xStart.emplace_back(width - sWidth - 1);
+//	if (yLeft != 0)
+//		yStart.emplace_back(height - sHeight - 1);
+//	for (int i = 0; i < yStart.size(); i++) {
+//		for (int j = 0; j < xStart.size(); j++) {
+//			cv::Rect rect;
+//			rect.x = xStart[j];
+//			rect.y = yStart[i];
+//			rect.width = sWidth;
+//			rect.height = sHeight;
+//			rects.emplace_back(rect);
+//		}
+//	}
+//	return rects;
+//}
 
 vector<cv::Rect> SlideProc::get_rects_slide()
 {
@@ -247,7 +247,7 @@ vector<cv::Rect> SlideProc::iniRects(int sHeight, int sWidth, int height, int wi
 	vector<int> xStart;
 	vector<int> yStart;
 	if ((x_num * (sWidth - overlap) + overlap) == width) {
-		flag_right = false;
+		flag_right = false;		
 	}
 	if ((y_num * (sHeight - overlap) + overlap) == height) {
 		flag_down = false;
@@ -316,53 +316,6 @@ bool SlideProc::popModel1Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
 	}
 }
 
-void SlideProc::enterModel1Queue3(std::atomic<bool>& flag, MultiImageRead& mImgRead)
-{
-	flag = true;
-	vector<std::pair<cv::Rect, cv::Mat>> tempRectMats;
-	int cropSize = model1Height * float(model1Mpp / slideMpp);
-	cropSize = cropSize / std::pow(slideRatio, levelBin);
-
-	while (mImgRead.popQueue(tempRectMats)) {
-		vector<std::pair<cv::Rect, cv::Mat>> rectMats;
-		for (auto iter = tempRectMats.begin(); iter != tempRectMats.end(); iter++) {
-			vector<cv::Rect> rects = iniRects(model1Height * float(model1Mpp / slideMpp), model1Width * float(model1Mpp / slideMpp), iter->second.rows, iter->second.cols);
-			for (auto iter2 = rects.begin(); iter2 != rects.end(); iter2++) {
-				std::pair<cv::Rect, cv::Mat> rectMat;
-				cv::Rect rect;
-				rect.x = iter->first.x + iter2->x;
-				rect.y = iter->first.y + iter2->y;
-				//这里过滤掉在binImg中和为0的图像
-				int startX = rect.x / std::pow(slideRatio, levelBin);
-				int startY = rect.y / std::pow(slideRatio, levelBin);
-				cv::Rect rectCrop(startX, startY, cropSize, cropSize);
-				cv::Mat cropMat = binImg(rectCrop);
-				int cropSum = cv::sum(cropMat)[0];
-				if (cropSum == 0)
-					continue;
-				rect.width = model1Width;
-				rect.height = model1Height;
-				rectMat.first = rect;
-				rectMat.second = iter->second(*iter2);
-				cv::resize(rectMat.second, rectMat.second, Size(model1Height, model1Width));
-				rectMats.emplace_back(std::move(rectMat));
-			}
-		}
-		//将rectMats放到tensor的队列里面
-		vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
-		Mats2Tensors(rectMats, rectsTensors, model1_batchsize);
-		std::unique_lock<std::mutex> m1Guard(tensor_queue_lock);
-		for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
-			tensor_queue.emplace(std::move(*iter));
-		}
-		m1Guard.unlock();
-		tensor_queue_cv.notify_one();
-		tempRectMats.clear();
-	}
-	flag = false;
-	//enterFlag3 = false;
-}
-
 void SlideProc::enterModel1Queue2(MultiImageRead& mImgRead)
 {
 	enterFlag1 = true;
@@ -405,6 +358,7 @@ void SlideProc::enterModel1Queue2(MultiImageRead& mImgRead)
 	}
 	enterFlag1 = false;
 }
+
 void SlideProc::enterModel1Queue(MultiImageRead& mImgRead)
 {
 	enterFlag1 = true;

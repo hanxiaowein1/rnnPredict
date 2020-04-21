@@ -119,6 +119,11 @@ void Model2Holder::sortResultsByScore(vector<regionResult>& results)
 	std::sort(results.begin(), results.end(), lambda);
 }
 
+void Model2Holder::model2Process(vector<cv::Mat>& imgs, vector<Tensor>& tensors)
+{
+	model2Handle->model2Process(imgs, tensors);
+}
+
 void Model2Holder::runModel2(MultiImageRead& mImgRead, vector<regionResult>& rResults)
 {
 	initPara(mImgRead);

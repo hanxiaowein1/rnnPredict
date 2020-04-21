@@ -16,13 +16,11 @@ SlideProc::~SlideProc()
 
 void SlideProc::freeMemory()
 {
-	delete model1Handle;
-	delete model2Handle;
+	delete m1Holder;
+	delete m2Holder;
+	delete m3Holder;
 	for (int i = 0; i < rnnHandle.size(); i++) {
 		delete rnnHandle[i];
-	}
-	for (int i = 0; i < xgHandle.size(); i++) {
-		free_xgboost(xgHandle[i]);
 	}
 }
 
@@ -125,21 +123,6 @@ bool SlideProc::iniPara(const char* slide, MultiImageRead& mImgRead)
 	return true;
 }
 
-bool SlideProc::initialize_binImg()
-{
-	int heightL4 = 0;
-    int widthL4 = 0;
-	m_srpRead->getLevelDimensions(levelBin, widthL4, heightL4);
-	if (widthL4 == 0 || heightL4 == 0) {
-		cout << "get L4 image failed\n";
-		return false;
-	}
-	m_srpRead->getTile(levelBin, 0, 0, widthL4, heightL4, imgL4);
-	threshold_segmentation(imgL4, binImg, levelBin, m_thre_col, m_thre_vol);
-	//cv::imwrite("D:\\TEST_OUTPUT\\rnnPredict\\binImg.tif", binImg);
-	return true;
-}
-
 vector<cv::Rect> SlideProc::get_rects_slide(MultiImageRead& mImgRead)
 {
 	vector<cv::Rect> rects;
@@ -223,106 +206,6 @@ vector<cv::Rect> SlideProc::get_rects_slide(MultiImageRead& mImgRead)
 	return rects;
 }
 
-void SlideProc::loadXgdll()
-{
-	xgDll = LoadLibraryA("xgdll.dll");
-	if (xgDll != nullptr) {
-		initialize_xgboost = (function_initialize)GetProcAddress(xgDll, "initialize_xgboost");
-		getPredictValue = (function_getPredictValue)GetProcAddress(xgDll, "getPredictValue");
-		free_xgboost = (function_free)GetProcAddress(xgDll, "free_xgboost");
-		if (initialize_xgboost == nullptr || getPredictValue == nullptr || free_xgboost == nullptr) {
-			cout << "xgboost load function failed\n";
-			return;
-		}
-	}
-}
-
-void SlideProc::runModel1(MultiImageRead& mImgRead)
-{
-	//vector<cv::Rect> rects = iniRects(mImgRead);
-	//vector<cv::Rect> rects = iniRects(model1Height * float(model1Mpp / slideMpp), slideWidth, slideHeight, slideWidth);
-	//vector<cv::Rect> rects = iniRects(block_height, block_width, slideHeight, slideWidth, 560);
-	//vector<cv::Rect> rects = get_rects_slide();
-	//在这里决定model1读取的层级
-
-	mImgRead.setReadLevel(read_level);
-	vector<cv::Rect> rects = get_rects_slide(mImgRead);
-	mImgRead.setRects(rects);
-	std::vector<std::pair<cv::Rect, cv::Mat>> rectMats;
-
-	//在这里开启4个线程
-	int count = 0;
-	std::thread thread1(&SlideProc::enterModel1Queue4, this, std::ref(enterFlag3), std::ref(mImgRead));
-	std::thread thread2(&SlideProc::enterModel1Queue4, this, std::ref(enterFlag4), std::ref(mImgRead));
-	std::thread thread3(&SlideProc::enterModel1Queue4, this, std::ref(enterFlag5), std::ref(mImgRead));
-	std::thread thread4(&SlideProc::enterModel1Queue4, this, std::ref(enterFlag6), std::ref(mImgRead));
-	while (!checkFlags()) {
-		continue;
-	}
-	std::vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
-	while (popModel1Queue(rectsTensors))
-	{
-		//cout << count << " ";
-		vector<Tensor> tensors;
-		vector<cv::Rect> tmpRects;
-		int size = rectsTensors.size();
-		for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
-			tensors.emplace_back(std::move(iter->second));
-			tmpRects.insert(tmpRects.end(), iter->first.begin(), iter->first.end());
-		}
-		vector<model1Result> results = model1Handle->model1Process(tensors);
-		for (auto iter = results.begin(); iter != results.end(); iter++) {
-			int place = iter - results.begin();
-			regionResult rResult;
-			rResult.result = *iter;
-			rResult.point.x = tmpRects[place].x * std::pow(slideRatio, read_level);//转为第0层级的图像
-			rResult.point.y = tmpRects[place].y * std::pow(slideRatio, read_level);
-			rResults.emplace_back(rResult);
-		}
-		count = count + rectsTensors.size();
-		rectsTensors.clear();
-	}
-	cout << endl;
-	thread1.join();
-	thread2.join();
-	thread3.join();
-	thread4.join();
-
-	//int count = 0;
-	//std::thread threadEnterQueue(&SlideProc::enterModel1Queue2, this, std::ref(mImgRead));
-	//while (enterFlag1 != true)
-	//{
-	//	continue;
-	//}
-	//cout << endl;
-	//while (/*mImgRead.popQueue(rectMats)*/popModel1Queue(rectMats))
-	//{
-	//	cout << count << " ";
-	//	vector<cv::Mat> imgs;
-	//	vector<cv::Rect> tmpRects;
-	//	int size = rectMats.size();
-	//	for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++)
-	//	{
-	//		imgs.emplace_back(std::move(iter->second));//用move语义将其放到新的里面
-	//		tmpRects.emplace_back(std::move(iter->first));
-	//	}
-	//	vector<model1Result> results = model1Handle->model1Process(imgs);
-	//	//将得到的结果和全局的坐标信息放到rResults里面
-	//	for (auto iter = results.begin(); iter != results.end(); iter++)
-	//	{
-	//		int place = iter - results.begin();
-	//		regionResult rResult;
-	//		rResult.result = *iter;
-	//		rResult.point.x = tmpRects[place].x;
-	//		rResult.point.y = tmpRects[place].y;
-	//		rResults.emplace_back(rResult);
-	//	}
-	//	count = count + rectMats.size();
-	//	rectMats.clear();		
-	//}
-	//threadEnterQueue.join();
-}
-
 cv::Point SlideProc::rect2Point(int x, int y, float radius)
 {
 	cv::Point point(ceil(x + radius), ceil(y + radius));
@@ -333,282 +216,6 @@ cv::Rect SlideProc::point2Rect(int x, int y, float radius, float diameter)
 {
 	cv::Rect rect(x - radius, y - radius, diameter, diameter);
 	return rect;
-}
-
-vector<PointScore> SlideProc::runModel3(MultiImageRead& mImgRead)
-{
-	mImgRead.setGammaFlag(false);
-	vector<Anno> annos = regionProposal(50);
-	vector<cv::Rect> rects;
-	for (int i = 0; i < annos.size(); i++) {
-		cv::Rect rect;
-		rect.x = annos[i].x - model2Width / 2 * float(model2Mpp / slideMpp);
-		rect.y = annos[i].y - model2Height / 2 * float(model2Mpp / slideMpp);
-		rect.height = model2Height * float(model2Mpp / slideMpp);
-		rect.width = model2Width * float(model2Mpp / slideMpp);
-		rects.emplace_back(rect);
-	}
-	mImgRead.setRects(rects);
-	std::thread threadEnterQueue(&SlideProc::enterModel2Queue, this, std::ref(mImgRead));
-	while (enterFlag2 != true) {
-		continue;
-	}
-	vector<std::pair<cv::Rect, cv::Mat>> rectMats;
-	vector<std::pair<cv::Rect, cv::Mat>> tmpRectMats;
-	while (popModel2Queue(tmpRectMats)) {
-		for (auto iter = tmpRectMats.begin(); iter != tmpRectMats.end(); iter++) {
-			rectMats.emplace_back(std::move(*iter));
-		}
-		tmpRectMats.clear();
-	}
-	threadEnterQueue.join();
-	vector<cv::Mat> imgs;
-	vector<std::pair<cv::Rect, model3Result>> xyResults;
-	for (auto& elem : rectMats)
-	{
-		imgs.emplace_back(std::move(elem.second));
-	}
-	//开始预测50张图像
-	vector<model3Result> results = model3Handle->model3Process(imgs);
-	for (auto& elem : results)
-	{
-		elem.iniType();
-	}
-	for (auto iter = results.begin();iter != results.end(); iter++)
-	{
-		int place = iter - results.begin();
-		std::pair<cv::Rect, model3Result> xyResult;
-		xyResult.first = rectMats[place].first;
-		xyResult.second = *iter;
-		xyResults.emplace_back(xyResult);
-	}
-	//返回model3
-	return model3Recom(xyResults);
-}
-
-
-
-//model3的推荐策略
-vector<PointScore> SlideProc::model3Recom(vector<std::pair<cv::Rect, model3Result>>& xyResults)
-{
-	auto lambda = [](std::pair<cv::Rect, model3Result> result1, std::pair<cv::Rect, model3Result> result2)->bool {
-		if (result1.second.type == result2.second.type)
-		{
-			if (result1.second.scores[result1.second.type] > result2.second.scores[result1.second.type])
-				return true;
-			else
-				return false;
-		}
-		else if (result1.second.type < result2.second.type)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	};
-	std::sort(xyResults.begin(), xyResults.end(), lambda);
-	vector<PointScore> retPs;
-	//现有策略是只推荐出典型区域
-	float radius = model2Width / 2 * float(model2Mpp / slideMpp);
-	for (int i = 0; i < xyResults.size(); i++)
-	{
-		if (xyResults[i].second.type == model3Result::TYPICAL)
-		{
-			//retRects.emplace_back(xyResults[i].first);
-			PointScore ps;
-			ps.point = rect2Point(xyResults[i].first.x, xyResults[i].first.y, radius);
-			ps.score = xyResults[i].second.scores[0];
-			retPs.emplace_back(ps);
-		}	
-	}
-	return retPs;
-}
-
-void SlideProc::runModel2(MultiImageRead& mImgRead)
-{
-	//从rResults里面挑选进入model2的框
-	//按照分数从大到小排序
-	int m2MinNum = 600;
-	int m2MaxNum = 1200;
-
-	sortResultsByScore(rResults);
-	vector<cv::Rect> rects;
-	int placeStop = 0;
-
-	//我可以一开始就将model1定位点越界的全部干掉啊...
-	//先copy一个副本，清除rResults，然后再从副本里面挑合理的放到rResults里面
-	vector<regionResult> rResultsCP = rResults;
-	rResults.clear();
-	for (auto iter = rResultsCP.begin(); iter != rResultsCP.end(); iter++)
-	{
-		regionResult result;
-		result.point = iter->point;
-		result.result.score = iter->result.score;
-		result.result.points.emplace_back(iter->result.points[0]);
-		for (int i = 1; i < iter->result.points.size(); i++) {
-			//cv::Point point = iter->point;
-			cv::Rect rect;
-			rect.x = iter->point.x;
-			rect.y = iter->point.y;
-			rect.x = rect.x + iter->result.points[i].x * float(model1Mpp / slideMpp) - model2Width * float(model2Mpp / slideMpp) / 2;
-			rect.y = rect.y + iter->result.points[i].y * float(model1Mpp / slideMpp) - model2Height * float(model2Mpp / slideMpp) / 2;
-			if (rect.x < 0 || rect.y < 0)
-				continue;
-			rect.width = model2Width * float(model2Mpp / slideMpp);
-			rect.height = model2Height * float(model2Mpp / slideMpp);
-			if ((rect.x + rect.width) > slideWidth || (rect.y + rect.height) > slideHeight)
-				continue;
-			result.result.points.emplace_back(iter->result.points[i]);
-		}
-		rResults.emplace_back(result);
-	}
-
-	for (auto iter = rResults.begin(); iter != rResults.end(); iter++)
-	{
-		//先将大于0.5的全部送到里面
-		if (iter->result.score > 0.5) {
-			if (rects.size() > m2MaxNum)
-				break;
-			placeStop = iter - rResults.begin();
-			int allocSize = 0;
-			for (int i = 1; i < iter->result.points.size(); i++) {
-				cv::Rect rect;
-				rect.x = iter->point.x
-					+ iter->result.points[i].x * float(model1Mpp / slideMpp)
-					- model2Width * float(model2Mpp / slideMpp) / 2;
-				rect.y = iter->point.y
-					+ iter->result.points[i].y * float(model1Mpp / slideMpp)
-					- model2Height * float(model2Mpp / slideMpp) / 2;
-				rect.width = model2Width * float(model2Mpp / slideMpp);
-				rect.height = model2Height * float(model2Mpp / slideMpp);
-				rects.emplace_back(rect);
-			}
-		}
-		else {
-			if (rects.size() < m2MinNum) {
-				placeStop = iter - rResults.begin();
-				//在向里面送
-				int allocSize = 0;
-				for (int i = 1; i < iter->result.points.size(); i++) {
-					cv::Rect rect;
-					rect.x = iter->point.x
-						+ iter->result.points[i].x * float(model1Mpp / slideMpp)
-						- model2Width * float(model2Mpp / slideMpp) / 2;
-					rect.y = iter->point.y
-						+ iter->result.points[i].y * float(model1Mpp / slideMpp)
-						- model2Height * float(model2Mpp / slideMpp) / 2;
-					rect.width = model2Width * float(model2Mpp / slideMpp);
-					rect.height = model2Height * float(model2Mpp / slideMpp);
-					rects.emplace_back(rect);
-				}		
-			}
-			else {
-				break;
-			}
-		}
-	}
-	//placeStop是以0为起点的，所以计数时，要将其加一
-	placeStop++;
-	mImgRead.setQueueMaxNum(rects.size());
-	mImgRead.setReadLevel(0);//永恒不变，model2一直都是从level0上进行读取
-	mImgRead.setRects(rects);
-
-	//std::thread thread1(&SlideProc::enterModel2Queue2, this, std::ref(enterFlag7), std::ref(mImgRead));
-	//std::thread thread2(&SlideProc::enterModel2Queue2, this, std::ref(enterFlag8), std::ref(mImgRead));
-	//std::thread thread3(&SlideProc::enterModel2Queue2, this, std::ref(enterFlag9), std::ref(mImgRead));
-	//std::thread thread4(&SlideProc::enterModel2Queue2, this, std::ref(enterFlag10), std::ref(mImgRead));
-	//while (!checkFlags2())
-	//{
-	//	continue;
-	//}
-	//vector<PointScore> model2PS;
-	//std::vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
-	//while (popModel2Queue(rectsTensors))
-	//{
-	//	vector<Tensor> tensors;
-	//	vector<cv::Rect> tmpRects;
-	//	int size = rectsTensors.size();
-	//	for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++)
-	//	{
-	//		tensors.emplace_back(std::move(iter->second));
-	//		tmpRects.insert(tmpRects.end(), iter->first.begin(), iter->first.end());
-	//	}
-	//	vector<float> scores = model2Handle->model2Process(tensors);
-	//	for (int i = 0; i < tmpRects.size(); i++)
-	//	{
-	//		PointScore ps;
-	//		cv::Point point;
-	//		point.x = tmpRects[i].x;
-	//		point.y = tmpRects[i].y;
-	//		ps.point = point;
-	//		ps.score = scores[i];
-	//		model2PS.emplace_back(ps);
-	//	}
-	//	rectsTensors.clear();
-	//}
-	//thread1.join();
-	//thread2.join();
-	//thread3.join();
-	//thread4.join();
-
-	std::thread threadEnterQueue(&SlideProc::enterModel2Queue, this, std::ref(mImgRead));
-	while (enterFlag2 != true)
-	{
-		continue;
-	}
-	//Sleep(3000);
-	std::vector<std::pair<cv::Rect, cv::Mat>> rectMats;
-	vector<PointScore> model2PS;
-	//int count = 0;
-	while (popModel2Queue(rectMats)/*mImgRead.popQueue(rectMats)*/)
-	{
-		vector<cv::Mat> imgs;
-		vector<cv::Rect> tmpRects;
-		for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++) {
-			imgs.emplace_back(std::move(iter->second));//用move语义将其放到新的里面
-			tmpRects.emplace_back(std::move(iter->first));
-		}	
-		vector<float> scores = model2Handle->model2Process(imgs);
-		for (int i = 0; i < tmpRects.size(); i++) {
-			PointScore ps;
-			cv::Point point;
-			point.x = tmpRects[i].x;
-			point.y = tmpRects[i].y;
-			ps.point = point;
-			ps.score = scores[i];
-			model2PS.emplace_back(ps);
-		}
-		rectMats.clear();
-	}
-	threadEnterQueue.join();
-	vector<vector<bool>> inFlag(placeStop);
-	for (int i = 0; i < placeStop; i++) {
-		int allocSize = rResults[i].result.points.size() - 1;
-		if (allocSize > 0) {
-			inFlag[i].resize(allocSize, false);
-			rResults[i].score2.resize(allocSize);
-		}
-	}
-	//考虑将model2PS放到rResults中
-	for (auto iter = model2PS.begin(); iter != model2PS.end(); iter++) {
-		cv::Point childPoint = iter->point;//这个是model2的左上角点
-		for (int i = 0; i < placeStop; i++) {
-			for (int j = 1; j < rResults[i].result.points.size(); j++) {
-				cv::Point fatherPoint = rResults[i].result.points[j];
-				fatherPoint.x = rResults[i].point.x + fatherPoint.x * float(model1Mpp / slideMpp) - model2Height * float(model2Mpp / slideMpp) / 2;//这个就是model2的全局定位点
-				fatherPoint.y = rResults[i].point.y + fatherPoint.y * float(model1Mpp / slideMpp) - model2Width * float(model2Mpp / slideMpp) / 2;
-				if (fatherPoint == childPoint) {
-					//找到两个点是相同的且score2标志位不为true
-					if (!inFlag[i][j - 1]) {
-						//将model2PS的分数放入其中
-						rResults[i].score2[j - 1] = iter->score;
-					}
-				}
-			}
-		}
-	}
 }
 
 vector<Anno> SlideProc::regionProposal(int recom)
@@ -799,7 +406,7 @@ float SlideProc::runRnn(vector<Anno>& annos, MultiImageRead& mImgRead)
 	for (int i = 0; i < rectMats.size(); i++) {
 		imgs.emplace_back(std::move(rectMats2[i].second));
 	}
-	model2Handle->model2Process(imgs, tensors);
+	m2Holder->model2Process(imgs, tensors);
 
 	//需要修改为3个rnn模型
 	//tensor[1]，变成了30*2048个向量，需要对其splice
@@ -858,57 +465,6 @@ float SlideProc::runRnn(vector<Anno>& annos, MultiImageRead& mImgRead)
 	else
 		retScore = avg_6;
 	return retScore;
-
-	//float max3 = std::max(avg2_1, avg2_2, avg2_3);
-	//float min3 = std::min(avg2_1, avg2_2, avg2_3);
-	
-
-	//return rnnResult / rnnResults.size();
-
-	//vector<std::future<float>> rnnResults(rnnHandle.size());
-	//for (int i = 0; i < rnnHandle.size(); i++) {
-	//	rnnResults[i] = std::async(/*std::launch::async, */&SlideProc::runRnnThread, this, i, std::ref(tensors[1]));
-	//}
-	//float rnnResult = 0.0f;
-	//for (int i = 0; i < rnnResults.size(); i++) {
-	//	rnnResult = rnnResult + rnnResults[i].get();
-	//}
-	//return rnnResult / rnnResults.size();
-
-}
-
-float SlideProc::runXgboost()
-{
-	//选取最大的model2的分数替换掉model1的分数
-	vector<regionResult> results = rResults;
-	for (auto iter = results.begin(); iter != results.end(); iter++) {
-		if (iter->score2.size() > 0) {
-			auto maxPlace = std::max_element(iter->score2.begin(), iter->score2.end());
-			iter->result.score = *maxPlace;
-		}
-	}
-	vector<float> score1, score12;
-	for (auto iter = results.begin(); iter != results.end(); iter++) {
-		score12.emplace_back(iter->result.score);
-	}
-	for (auto iter = rResults.begin(); iter != rResults.end(); iter++) {
-		score1.emplace_back(iter->result.score);
-	}
-	vector<float> xgResults;
-	for (int i = 0; i < xgHandle.size(); i++) {
-		vector<float> score1Duplicate;
-		vector<float> score12Duplicate;
-		score1Duplicate.insert(score1Duplicate.end(), score1.begin(), score1.end());
-		score12Duplicate.insert(score12Duplicate.end(), score12.begin(), score12.end());
-		float xgResult = getPredictValue(score1Duplicate, score12Duplicate, xgHandle[i]);
-		if (xgResult > 1.0f)
-			xgResult = 1.0f;
-		if (xgResult < 0.0f)
-			xgResult = 0.0f;
-		xgResults.emplace_back(xgResult);
-	}
-	float mean = std::accumulate(std::begin(xgResults), std::end(xgResults), 0.0f) / xgResults.size();
-	return mean;
 }
 
 void SlideProc::sortResultsByCoor(vector<regionResult>& results)
@@ -993,175 +549,28 @@ void SlideProc::sortResultsByScore(vector<regionResult> &results)
 	std::sort(results.begin(), results.end(), lambda);
 }
 
-void SlideProc::normalize(vector<cv::Mat>& imgs, Tensor& tensor)
-{
-	if (imgs.size() == 0)
-		return;
-	for (int i = 1; i < imgs.size(); i++) {
-		if (imgs[i - 1].rows != imgs[i].rows || imgs[i - 1].cols != imgs[i].cols)
-			return;
-	}
-	int tensorHeight = imgs[0].rows;
-	int tensorWidth = imgs[0].cols;
-	for (int i = 0; i < imgs.size(); i++) {
-		float* ptr = tensor.flat<float>().data() + i * tensorHeight * tensorWidth * 3;
-		cv::Mat tensor_image(tensorHeight, tensorWidth, CV_32FC3, ptr);
-		imgs[i].convertTo(tensor_image, CV_32F);//转为float类型的数组
-		tensor_image = (tensor_image / 255 - 0.5) * 2;
-	}
-}
-
-void SlideProc::Mats2Tensors(vector<std::pair<cv::Rect, cv::Mat>>& rectMats, vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors, int batchsize)
-{
-	if (rectMats.size() == 0)
-		return;
-	vector<cv::Rect> rects;
-	vector<cv::Mat> imgs;
-	for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++) {
-		rects.emplace_back(std::move(iter->first));
-		imgs.emplace_back(std::move(iter->second));
-	}
-	for (int i = 1; i < imgs.size(); i++) {
-		if (imgs[i - 1].rows != imgs[i].rows || imgs[i - 1].cols != imgs[i].cols)
-			return;
-	}
-	vector<Tensor> tensors;
-	Mats2Tensors(imgs, tensors, batchsize);
-	//现在将rects和tensors按位置放到rectsTensors里面
-	int start = 0;
-	int tensorPlace = 0;
-
-	for (int i = 0; i < rects.size(); i = i + batchsize) {
-		std::pair<vector<cv::Rect>, Tensor> rectsTensor;
-		auto iterBegin = rects.begin() + start;
-		auto iterEnd = rects.end();
-		if (iterBegin + batchsize >= iterEnd) {
-			vector<cv::Rect> tempRects(iterBegin, iterEnd);
-			rectsTensor.first = tempRects;
-			rectsTensor.second = std::move(tensors[tensorPlace]);
-		}
-		else {
-			iterEnd = iterBegin + batchsize;
-			vector<cv::Rect> tempRects(iterBegin, iterEnd);
-			rectsTensor.first = tempRects;
-			rectsTensor.second = std::move(tensors[tensorPlace]);
-			start = start + batchsize;
-			tensorPlace++;
-		}
-		rectsTensors.emplace_back(std::move(rectsTensor));
-	}
-}
-
-void SlideProc::Mats2Tensors(vector<cv::Mat>& imgs, vector<Tensor>& tensors, int batchsize)
-{
-	int start = 0;
-	if (imgs.size() == 0)
-		return;
-	for (int i = 1; i < imgs.size(); i++) {
-		if (imgs[i - 1].rows != imgs[i].rows || imgs[i - 1].cols != imgs[i].cols)
-			return;
-	}
-	int tensorHeight = imgs[0].rows;
-	int tensorWidth = imgs[0].cols;
-	for (int i = 0; i < imgs.size(); i = i + batchsize) {
-		auto iterBegin = imgs.begin() + start;
-		vector<cv::Mat>::iterator iterEnd = imgs.end();
-		if (iterBegin + batchsize >= iterEnd) {
-			vector<cv::Mat> tempImgs(iterBegin, iterEnd);
-			tensorflow::Tensor tensor(tensorflow::DataType::DT_FLOAT, tensorflow::TensorShape({ iterEnd - iterBegin, tensorHeight, tensorWidth, 3 }));
-			normalize(tempImgs, tensor);
-			tensors.emplace_back(std::move(tensor));
-		}
-		else {
-			iterEnd = iterBegin + batchsize;
-			vector<cv::Mat> tempImgs(iterBegin, iterEnd);
-			tensorflow::Tensor tensor(tensorflow::DataType::DT_FLOAT, tensorflow::TensorShape({ iterEnd - iterBegin, tensorHeight, tensorWidth, 3 }));
-			normalize(tempImgs, tensor);
-			tensors.emplace_back(std::move(tensor));
-			start = i + batchsize;
-		}
-	}
-}
-
-void SlideProc::enterModel1Queue4(std::atomic<bool>& flag, MultiImageRead& mImgRead)
-{
-	flag = true;
-	vector<std::pair<cv::Rect, cv::Mat>> tempRectMats;
-	int cropSize = model1Height * float(model1Mpp / slideMpp);
-	cropSize = cropSize / std::pow(slideRatio, levelBin);
-	while (mImgRead.popQueue(tempRectMats)) {
-		vector<std::pair<cv::Rect, cv::Mat>> rectMats;
-		for (auto iter = tempRectMats.begin(); iter != tempRectMats.end(); iter++) {
-			//cv::imwrite("D:\\TEST_OUTPUT\\rnnPredict\\" + to_string(iter->first.x) + "_" + to_string(iter->first.y) + ".tif", iter->second);
-			bool flag_right = false;
-			bool flag_down = false;
-			if (iter->second.cols != block_width / std::pow(slideRatio, read_level))
-				flag_right = true;
-			if (iter->second.rows != block_height / std::pow(slideRatio, read_level))
-				flag_down = true;
-			int crop_width = int(model1Height * float(model1Mpp / slideMpp)) / std::pow(slideRatio,read_level);
-			int crop_height = int(model1Width * float(model1Mpp / slideMpp)) / std::pow(slideRatio, read_level);
-			int overlap = (int(model1Height * float(model1Mpp / slideMpp)) / 4) / std::pow(slideRatio, read_level);
-			vector<cv::Rect> rects = iniRects(
-				crop_width, crop_height,
-				iter->second.rows, iter->second.cols, overlap, flag_right, flag_down);
-			
-			for (auto iter2 = rects.begin(); iter2 != rects.end(); iter2++) {
-				std::pair<cv::Rect, cv::Mat> rectMat;
-				cv::Rect rect;
-				rect.x = iter->first.x + iter2->x;
-				rect.y = iter->first.y + iter2->y;
-				//这里过滤掉在binImg中和为0的图像
-				int startX = rect.x / std::pow(slideRatio, levelBin-read_level);
-				int startY = rect.y / std::pow(slideRatio, levelBin-read_level);
-				cv::Rect rectCrop(startX, startY, cropSize, cropSize);
-				cv::Mat cropMat = binImg(rectCrop);
-				int cropSum = cv::sum(cropMat)[0];
-				if (cropSum <= m_crop_sum * 255)
-					continue;
-				rect.width = model1Width;
-				rect.height = model1Height;
-				rectMat.first = rect;
-				rectMat.second = iter->second(*iter2);
-				cv::resize(rectMat.second, rectMat.second, Size(model1Height, model1Width));
-				rectMats.emplace_back(std::move(rectMat));
-			}
-		}
-		//将rectMats放到tensor的队列里面
-		vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
-		Mats2Tensors(rectMats, rectsTensors, model1_batchsize);
-		std::unique_lock<std::mutex> m1Guard(tensor_queue_lock);
-		for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
-			tensor_queue.emplace(std::move(*iter));
-		}
-		m1Guard.unlock();
-		tensor_queue_cv.notify_one();
-		tempRectMats.clear();
-	}
-	flag = false;
-}
-
-void SlideProc::enterModel2Queue2(std::atomic<bool>& flag, MultiImageRead& mImgRead)
-{
-	//接下来的步骤和model1的步骤相同
-	flag = true;
-	vector<std::pair<cv::Rect, cv::Mat>> rectMats;
-	while (mImgRead.popQueue(rectMats)) {
-		for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++) {
-			cv::resize(iter->second, iter->second, Size(model2Height, model2Width));
-		}
-		vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
-		Mats2Tensors(rectMats, rectsTensors, model2_batchsize);
-		std::unique_lock<std::mutex> m2Guard(tensor_queue_lock2);
-		for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
-			tensor_queue2.emplace(std::move(*iter));
-		}
-		m2Guard.unlock();
-		tensor_queue_cv2.notify_one();
-		rectMats.clear();
-	}
-	flag = false;
-}
+//
+//void SlideProc::enterModel2Queue2(std::atomic<bool>& flag, MultiImageRead& mImgRead)
+//{
+//	//接下来的步骤和model1的步骤相同
+//	flag = true;
+//	vector<std::pair<cv::Rect, cv::Mat>> rectMats;
+//	while (mImgRead.popQueue(rectMats)) {
+//		for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++) {
+//			cv::resize(iter->second, iter->second, Size(model2Height, model2Width));
+//		}
+//		vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
+//		Mats2Tensors(rectMats, rectsTensors, model2_batchsize);
+//		std::unique_lock<std::mutex> m2Guard(tensor_queue_lock2);
+//		for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
+//			tensor_queue2.emplace(std::move(*iter));
+//		}
+//		m2Guard.unlock();
+//		tensor_queue_cv2.notify_one();
+//		rectMats.clear();
+//	}
+//	flag = false;
+//}
 
 void SlideProc::enterModel2Queue(MultiImageRead& mImgRead)
 {
@@ -1189,56 +598,6 @@ bool SlideProc::checkFlags2()
 	if (enterFlag7.load() || enterFlag8.load() || enterFlag9.load() || enterFlag10.load())
 		return true;
 	return false;
-}
-
-bool SlideProc::checkFlags() {
-	//for (int i = 0; i < enterFlag3.size(); i++)
-	//{
-	//	if (enterFlag3[i] == true)
-	//		return true;
-	//}
-	//return false;
-	if (enterFlag3.load() || enterFlag4.load()|| enterFlag5.load() || enterFlag6.load())
-		return true;
-	return false;
-}
-
-bool SlideProc::popModel1Queue(vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors)
-{
-	std::unique_lock < std::mutex > m1Guard(tensor_queue_lock);
-	if (tensor_queue.size() > 0) {
-		int size = tensor_queue.size();
-		for (int i = 0; i < size; i++) {
-			rectsTensors.emplace_back(std::move(tensor_queue.front()));
-			tensor_queue.pop();
-		}
-		return true;
-	}
-	else if (checkFlags()) {
-		tensor_queue_cv.wait_for(m1Guard, 3000ms, [this] {
-			if (tensor_queue.size() > 0)
-				return true;
-			return false;
-			});
-		int size = tensor_queue.size();
-		if (size == 0 && checkFlags()) {
-			m1Guard.unlock();
-			bool flag = popModel1Queue(rectsTensors);
-			return flag;
-		}
-		if (size == 0 && !checkFlags()) {
-			return false;
-		}
-		for (int i = 0; i < size; i++) {
-			rectsTensors.emplace_back(std::move(tensor_queue.front()));
-			tensor_queue.pop();
-		}
-		return true;
-	}
-	else
-	{
-		return false;
-	}
 }
 
 bool SlideProc::popModel2Queue(vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors)
@@ -1381,11 +740,6 @@ void SlideProc::saveImages(vector<PointScore>& pss, int radius, string savePath)
 	}
 }
 
-void SlideProc::saveImages(MultiImageRead& mImgRead, vector<cv::Rect>& rects)
-{
-
-}
-
 vector<PointScore> SlideProc::anno2PS(vector<Anno>& annos)
 {
 	vector<PointScore> ret;
@@ -1409,9 +763,6 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 	if (!mImgRead.status())
 		return false;
 	iniPara(slide, mImgRead);
-	bool flag = initialize_binImg();
-	if (!flag)
-		return false;
 
 	m_slide = string(slide);
 	rResults.clear();
@@ -1467,147 +818,148 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 	mImgRead.~MultiImageRead();
 }
 
-bool SlideProc::runSlide2(const char* slide)
-{
-	levelBin = 4;
-	MultiImageRead mImgRead(slide);
-	mImgRead.createThreadPool();
-	mImgRead.setAddTaskThread();
-	if (!mImgRead.status())
-		return false;
-	iniPara2(slide, mImgRead);
-	string suffix = getFileNameSuffix(string(slide));
-	if(suffix == "srp") {
-		if (m_srpRead != nullptr) {
-			delete m_srpRead;
-			m_srpRead = new SrpSlideRead(slide);
-		}
-		else {
-			m_srpRead = new SrpSlideRead(slide);
-		}
-		initialize_binImg();
-		mImgRead.setGammaFlag(true);
-	}
-	if (suffix == "sdpc") {
-		if (m_sdpcRead != nullptr) {
-			delete m_sdpcRead;
-			m_sdpcRead = new SdpcSlideRead(slide);
-		}
-		else {
-			m_sdpcRead = new SdpcSlideRead(slide);
-		}
-
-		int heightL4 = 0;
-		int widthL4 = 0;
-		m_sdpcRead->getLevelDimensions(levelBin, widthL4, heightL4);
-		if (widthL4 == 0 || heightL4 == 0) {
-			cout << "get L4 image failed\n";
-			return false;
-		}
-		m_sdpcRead->getTile(levelBin, 0, 0, widthL4, heightL4, imgL4);
-		threshold_segmentation(imgL4, binImg, levelBin, 20, 150);
-		mImgRead.setGammaFlag(true);
-	}
-	if (suffix == "svs" || suffix == "mrxs") {
-		if (m_osRead != nullptr) {
-			delete m_osRead;
-			m_osRead = new OpenSlideRead(slide);
-		}
-		else {
-			m_osRead = new OpenSlideRead(slide);
-		}
-		if (suffix == "svs") {
-
-			slideMpp = 0.293f;
-			m_osRead->getLevelDimensions(0, slideWidth, slideHeight);
-		}
-
-		m_osRead->getTile(
-			levelBin, 0, 0,
-			slideWidth / std::pow(slideRatio, levelBin), slideHeight / std::pow(slideRatio, levelBin), imgL4);
-		threshold_segmentation(imgL4, binImg, levelBin, 20, 150);
-		mImgRead.setGammaFlag(false);		
-	}
-	m_slide = string(slide);
-	rResults.clear();
-	if (slideHeight == 0 || slideWidth == 0 || slideMpp == 0)
-		return false;
-	time_t now = time(0);
-	cout << "start model1 process: " << (char*)ctime(&now);
-	runModel1(mImgRead);
-	now = time(0);
-	cout << "start model2 process: " << (char*)ctime(&now);
-	runModel2(mImgRead);
-	sortResultsByCoor(rResults);
-	return true;
-}
-
-bool SlideProc::runSlide(const char* slide, vector<Anno>& annos)
-{
-	//levelBin = 4;
-
-	//初始化片子的信息
-	MultiImageRead mImgRead(slide);
-	mImgRead.createThreadPool();
-	mImgRead.setAddTaskThread();
-	if (!mImgRead.status())
-		return false;
-	iniPara(slide, mImgRead);
-	bool flag = initialize_binImg();
-	if (!flag)
-		return false;
-
-	m_slide = string(slide);
-	rResults.clear();
-
-	if (slideHeight == 0 || slideWidth == 0 || slideMpp == 0)
-		return false;
-
-	time_t now = time(0);
-	cout << "start model1 process: " << (char*)ctime(&now);
-	runModel1(mImgRead);
-	sortResultsByCoor(rResults);
-	now = time(0);
-	cout << "start model2 process: " << (char*)ctime(&now);
-	runModel2(mImgRead);
-	sortResultsByCoor(rResults);
-	now = time(0);
-	cout << "start regionProposal: " << (char*)ctime(&now);
-	annos = regionProposal(recomNum);
-
-	now = time(0);
-	cout << "start runRnn: " << (char*)ctime(&now);
-	float rnnResult = runRnn(annos, mImgRead);
-	//float xgResult = runXgboost();
-	sortResultsByCoor(rResults);
-
-	slideScore = rnnResult;
-
-	mImgRead.~MultiImageRead();
-
-	//将信息写到srp里面
-	annos.erase(annos.begin() + 10, annos.end());
-	Anno* pann = new Anno[annos.size()];
-	for (int i = 0; i < annos.size(); i++) {
-		pann[i].id = i;
-		pann[i].type = 0;
-		pann[i].x = annos[i].x;
-		pann[i].y = annos[i].y;
-		pann[i].score = annos[i].score;
-	}
-	now = time(0);
-	cout << "write anno to slide: " << (char*)ctime(&now);
-	m_srpRead->callCleanAnno();
-	m_srpRead->callWriteAnno(pann, annos.size());
-	m_srpRead->callWriteParamDouble("score", slideScore);
-
-	mImgRead.~MultiImageRead();
-	if (m_srpRead != nullptr)
-	{
-		delete m_srpRead;
-		m_srpRead = nullptr;
-	}
-
-
-	return true;
-}
+//
+//bool SlideProc::runSlide2(const char* slide)
+//{
+//	levelBin = 4;
+//	MultiImageRead mImgRead(slide);
+//	mImgRead.createThreadPool();
+//	mImgRead.setAddTaskThread();
+//	if (!mImgRead.status())
+//		return false;
+//	iniPara2(slide, mImgRead);
+//	string suffix = getFileNameSuffix(string(slide));
+//	if(suffix == "srp") {
+//		if (m_srpRead != nullptr) {
+//			delete m_srpRead;
+//			m_srpRead = new SrpSlideRead(slide);
+//		}
+//		else {
+//			m_srpRead = new SrpSlideRead(slide);
+//		}
+//		initialize_binImg();
+//		mImgRead.setGammaFlag(true);
+//	}
+//	if (suffix == "sdpc") {
+//		if (m_sdpcRead != nullptr) {
+//			delete m_sdpcRead;
+//			m_sdpcRead = new SdpcSlideRead(slide);
+//		}
+//		else {
+//			m_sdpcRead = new SdpcSlideRead(slide);
+//		}
+//
+//		int heightL4 = 0;
+//		int widthL4 = 0;
+//		m_sdpcRead->getLevelDimensions(levelBin, widthL4, heightL4);
+//		if (widthL4 == 0 || heightL4 == 0) {
+//			cout << "get L4 image failed\n";
+//			return false;
+//		}
+//		m_sdpcRead->getTile(levelBin, 0, 0, widthL4, heightL4, imgL4);
+//		threshold_segmentation(imgL4, binImg, levelBin, 20, 150);
+//		mImgRead.setGammaFlag(true);
+//	}
+//	if (suffix == "svs" || suffix == "mrxs") {
+//		if (m_osRead != nullptr) {
+//			delete m_osRead;
+//			m_osRead = new OpenSlideRead(slide);
+//		}
+//		else {
+//			m_osRead = new OpenSlideRead(slide);
+//		}
+//		if (suffix == "svs") {
+//
+//			slideMpp = 0.293f;
+//			m_osRead->getLevelDimensions(0, slideWidth, slideHeight);
+//		}
+//
+//		m_osRead->getTile(
+//			levelBin, 0, 0,
+//			slideWidth / std::pow(slideRatio, levelBin), slideHeight / std::pow(slideRatio, levelBin), imgL4);
+//		threshold_segmentation(imgL4, binImg, levelBin, 20, 150);
+//		mImgRead.setGammaFlag(false);		
+//	}
+//	m_slide = string(slide);
+//	rResults.clear();
+//	if (slideHeight == 0 || slideWidth == 0 || slideMpp == 0)
+//		return false;
+//	time_t now = time(0);
+//	cout << "start model1 process: " << (char*)ctime(&now);
+//	runModel1(mImgRead);
+//	now = time(0);
+//	cout << "start model2 process: " << (char*)ctime(&now);
+//	runModel2(mImgRead);
+//	sortResultsByCoor(rResults);
+//	return true;
+//}
+//
+//bool SlideProc::runSlide(const char* slide, vector<Anno>& annos)
+//{
+//	//levelBin = 4;
+//
+//	//初始化片子的信息
+//	MultiImageRead mImgRead(slide);
+//	mImgRead.createThreadPool();
+//	mImgRead.setAddTaskThread();
+//	if (!mImgRead.status())
+//		return false;
+//	iniPara(slide, mImgRead);
+//	bool flag = initialize_binImg();
+//	if (!flag)
+//		return false;
+//
+//	m_slide = string(slide);
+//	rResults.clear();
+//
+//	if (slideHeight == 0 || slideWidth == 0 || slideMpp == 0)
+//		return false;
+//
+//	time_t now = time(0);
+//	cout << "start model1 process: " << (char*)ctime(&now);
+//	runModel1(mImgRead);
+//	sortResultsByCoor(rResults);
+//	now = time(0);
+//	cout << "start model2 process: " << (char*)ctime(&now);
+//	runModel2(mImgRead);
+//	sortResultsByCoor(rResults);
+//	now = time(0);
+//	cout << "start regionProposal: " << (char*)ctime(&now);
+//	annos = regionProposal(recomNum);
+//
+//	now = time(0);
+//	cout << "start runRnn: " << (char*)ctime(&now);
+//	float rnnResult = runRnn(annos, mImgRead);
+//	//float xgResult = runXgboost();
+//	sortResultsByCoor(rResults);
+//
+//	slideScore = rnnResult;
+//
+//	mImgRead.~MultiImageRead();
+//
+//	//将信息写到srp里面
+//	annos.erase(annos.begin() + 10, annos.end());
+//	Anno* pann = new Anno[annos.size()];
+//	for (int i = 0; i < annos.size(); i++) {
+//		pann[i].id = i;
+//		pann[i].type = 0;
+//		pann[i].x = annos[i].x;
+//		pann[i].y = annos[i].y;
+//		pann[i].score = annos[i].score;
+//	}
+//	now = time(0);
+//	cout << "write anno to slide: " << (char*)ctime(&now);
+//	m_srpRead->callCleanAnno();
+//	m_srpRead->callWriteAnno(pann, annos.size());
+//	m_srpRead->callWriteParamDouble("score", slideScore);
+//
+//	mImgRead.~MultiImageRead();
+//	if (m_srpRead != nullptr)
+//	{
+//		delete m_srpRead;
+//		m_srpRead = nullptr;
+//	}
+//
+//
+//	return true;
+//}

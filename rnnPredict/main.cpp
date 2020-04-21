@@ -344,19 +344,19 @@ void output(std::vector<cv::Mat>& imgs)
 }
 
 //这个是给刘思博的，测试所有切片的，不过model2要改成0.243，model1要改成0.486
-void subTask2(vector<string>& slideList, SlideProc& slideProc, string savePath)
-{
-	for (auto& elem : slideList)
-	{
-		cout << elem << " start processing\n";
-		string filename = getFileNamePrefix(&elem);
-		//在这里为每一个片子单独生成一个文件夹
-		if (!slideProc.runSlide2(elem.c_str()))
-			continue;
-		slideProc.saveResult(savePath, filename);
-		slideProc.saveResult2(savePath, filename);
-	}
-}
+//void subTask2(vector<string>& slideList, SlideProc& slideProc, string savePath)
+//{
+//	for (auto& elem : slideList)
+//	{
+//		cout << elem << " start processing\n";
+//		string filename = getFileNamePrefix(&elem);
+//		//在这里为每一个片子单独生成一个文件夹
+//		if (!slideProc.runSlide2(elem.c_str()))
+//			continue;
+//		slideProc.saveResult(savePath, filename);
+//		slideProc.saveResult2(savePath, filename);
+//	}
+//}
 
 //这个是给学姐的model3
 void subTask(vector<string> &slideList, SlideProc &slideProc, string savePath)
