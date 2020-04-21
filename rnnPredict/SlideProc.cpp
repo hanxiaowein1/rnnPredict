@@ -408,63 +408,66 @@ float SlideProc::runRnn(vector<Anno>& annos, MultiImageRead& mImgRead)
 	}
 	m2Holder->model2Process(imgs, tensors);
 
+	float retScore = rnnHolder->runRnn(tensors[1]);
+	return retScore;
+
 	//需要修改为3个rnn模型
 	//tensor[1]，变成了30*2048个向量，需要对其splice
-	vector<Tensor> rnnInputTensor;
-	Tensor tensor10 = tensors[1].Slice(0, 10);
-	Tensor tensor20 = tensors[1].Slice(0, 20);
-	rnnInputTensor.emplace_back(tensor10);
-	rnnInputTensor.emplace_back(tensor20);
-	rnnInputTensor.emplace_back(tensors[1]);
+	//vector<Tensor> rnnInputTensor;
+	//Tensor tensor10 = tensors[1].Slice(0, 10);
+	//Tensor tensor20 = tensors[1].Slice(0, 20);
+	//rnnInputTensor.emplace_back(tensor10);
+	//rnnInputTensor.emplace_back(tensor20);
+	//rnnInputTensor.emplace_back(tensors[1]);
 
-	vector<std::future<float>> rnnResults(rnnHandle.size());
-	for (int i = 0; i < rnnHandle.size(); i++)
-	{
-		rnnResults[i] = std::async(&SlideProc::runRnnThread2, this, i, std::ref(rnnInputTensor[i / 2]));
-	}
-	vector<float> rnnResults_f;
-	for (int i = 0; i < rnnResults.size(); i++)
-	{
-		rnnResults_f.emplace_back(rnnResults[i].get());
-	}
-	cout << "rnnResults_f: ";
-	for (int i = 0; i < rnnResults_f.size(); i++)
-	{
-		cout << rnnResults_f[i] << " ";
-	}
-	cout << endl;
-	if (rnnResults_f.size() != 6)
-		return -1;
-	//先求6个数的平均值
-	float sum_6 = std::accumulate(rnnResults_f.begin(), rnnResults_f.end(), 0.0f);
-	float avg_6 = sum_6 / rnnResults_f.size();
-	float avg2_1 = std::accumulate(rnnResults_f.begin(), rnnResults_f.begin() + 2, 0.0f) / 2;//前两个平均值
-	float avg2_2 = std::accumulate(rnnResults_f.begin() + 2, rnnResults_f.begin() + 4, 0.0f) / 2;//...
-	float avg2_3 = std::accumulate(rnnResults_f.begin() + 4, rnnResults_f.end(), 0.0f) / 2;//...
-	vector<float> avg3_total{ avg2_1, avg2_2, avg2_3 };
-	float max_3 = *std::max_element(avg3_total.begin(), avg3_total.end());
-	float min_3 = *std::min_element(avg3_total.begin(), avg3_total.end());
+	//vector<std::future<float>> rnnResults(rnnHandle.size());
+	//for (int i = 0; i < rnnHandle.size(); i++)
+	//{
+	//	rnnResults[i] = std::async(&SlideProc::runRnnThread2, this, i, std::ref(rnnInputTensor[i / 2]));
+	//}
+	//vector<float> rnnResults_f;
+	//for (int i = 0; i < rnnResults.size(); i++)
+	//{
+	//	rnnResults_f.emplace_back(rnnResults[i].get());
+	//}
+	//cout << "rnnResults_f: ";
+	//for (int i = 0; i < rnnResults_f.size(); i++)
+	//{
+	//	cout << rnnResults_f[i] << " ";
+	//}
+	//cout << endl;
+	//if (rnnResults_f.size() != 6)
+	//	return -1;
+	////先求6个数的平均值
+	//float sum_6 = std::accumulate(rnnResults_f.begin(), rnnResults_f.end(), 0.0f);
+	//float avg_6 = sum_6 / rnnResults_f.size();
+	//float avg2_1 = std::accumulate(rnnResults_f.begin(), rnnResults_f.begin() + 2, 0.0f) / 2;//前两个平均值
+	//float avg2_2 = std::accumulate(rnnResults_f.begin() + 2, rnnResults_f.begin() + 4, 0.0f) / 2;//...
+	//float avg2_3 = std::accumulate(rnnResults_f.begin() + 4, rnnResults_f.end(), 0.0f) / 2;//...
+	//vector<float> avg3_total{ avg2_1, avg2_2, avg2_3 };
+	//float max_3 = *std::max_element(avg3_total.begin(), avg3_total.end());
+	//float min_3 = *std::min_element(avg3_total.begin(), avg3_total.end());
 
-	float sum_3 = std::accumulate(avg3_total.begin(), avg3_total.end(), 0.0f);
-	float avg_3 = sum_3 / avg3_total.size();
-	float accum = 0.0;
-	std::for_each(avg3_total.begin(), avg3_total.end(), [&](const float d) {
-		accum += (d - avg_3) * (d - avg_3);
-		});
-	accum = accum / avg3_total.size();//方差
-	float std_3 = std::pow(accum, 0.5f);
+	//float sum_3 = std::accumulate(avg3_total.begin(), avg3_total.end(), 0.0f);
+	//float avg_3 = sum_3 / avg3_total.size();
+	//float accum = 0.0;
+	//std::for_each(avg3_total.begin(), avg3_total.end(), [&](const float d) {
+	//	accum += (d - avg_3) * (d - avg_3);
+	//	});
+	//accum = accum / avg3_total.size();//方差
+	//float std_3 = std::pow(accum, 0.5f);
 
-	float retScore = 0.0f;
-	if (std_3 < 0.15f)
-	{
-		if (avg_6 < 0.15f)
-			retScore = min_3;
-		else
-			retScore = max_3;
-	}
-	else
-		retScore = avg_6;
-	return retScore;
+	//float retScore = 0.0f;
+	//if (std_3 < 0.15f)
+	//{
+	//	if (avg_6 < 0.15f)
+	//		retScore = min_3;
+	//	else
+	//		retScore = max_3;
+	//}
+	//else
+	//	retScore = avg_6;
+	//return retScore;
 }
 
 void SlideProc::sortResultsByCoor(vector<regionResult>& results)
@@ -783,6 +786,7 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 	sortResultsByCoor(rResults);
 
 	vector<Anno> annos = regionProposal(30);
+	slideScore = runRnn(annos, mImgRead);
 
 	//在这里测试一下model3
 	vector<Anno> annos_for_m3 = regionProposal(50);

@@ -12,6 +12,7 @@
 #include "Model1Holder.h"
 #include "Model2Holder.h"
 #include "Model3Holder.h"
+#include "RnnHolder.h"
 /*
 管理者一张切片的计算过程：
 因此所需的成员变量有：
@@ -25,6 +26,8 @@ private:
 	Model1Holder *m1Holder = nullptr;
 	Model2Holder* m2Holder = nullptr;
 	Model3Holder* m3Holder = nullptr;
+	RnnHolder* rnnHolder = nullptr;
+
 	vector<rnn*> rnnHandle;
 	vector<regionResult> rResults;
 	int recomNum = 30;

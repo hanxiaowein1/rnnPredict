@@ -114,6 +114,9 @@
     <ClCompile Include="Model3Holder.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="RnnHolder.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="commonFunction.h">
@@ -189,6 +192,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Model3Holder.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="RnnHolder.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

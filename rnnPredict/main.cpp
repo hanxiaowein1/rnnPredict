@@ -372,6 +372,7 @@ void subTask(vector<string> &slideList, SlideProc &slideProc, string savePath)
 			continue;
 		slideProc.saveResult(savePath, filename);
 		slideProc.saveResult2(savePath, filename);
+		slideProc.saveResult3(savePath, filename + "_rnnScore");
 	}
 }
 

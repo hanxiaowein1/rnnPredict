@@ -135,6 +135,7 @@
     <ClCompile Include="OpenSlideRead.cpp" />
     <ClCompile Include="rnn.cpp" />
     <ClCompile Include="rnn1.cpp" />
+    <ClCompile Include="RnnHolder.cpp" />
     <ClCompile Include="SdpcSlideRead.cpp" />
     <ClCompile Include="SlideFactory.cpp" />
     <ClCompile Include="SlideProc.cpp" />
@@ -164,6 +165,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="rnn.h" />
     <ClInclude Include="rnn1.h" />
+    <ClInclude Include="RnnHolder.h" />
     <ClInclude Include="SdpcSlideRead.h" />
     <ClInclude Include="SlideFactory.h" />
     <ClInclude Include="SlideProc.h" />
