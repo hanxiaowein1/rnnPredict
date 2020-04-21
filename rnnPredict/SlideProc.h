@@ -118,7 +118,6 @@ private:
 	bool checkFlags2();
 	bool popModel2Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
 	bool popModel2Queue(vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors);
-	bool initialize_binImg();
 	//初始化根据mpp和ration变化而导致各种变化的参数
 	bool iniPara(const char* slide, MultiImageRead& mImgRead);
 	//先在程序中尝试去掉m_srpRead，m_sdpcRead，m_osRead

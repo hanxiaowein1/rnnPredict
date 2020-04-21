@@ -283,14 +283,19 @@ void Model1Holder::enterModel1Queue4(std::atomic<bool>& flag, MultiImageRead& mI
 			}
 		}
 		//将rectMats放到tensor的队列里面
-		vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
-		Mats2Tensors(rectMats, rectsTensors, model1_batchsize);
-		std::unique_lock<std::mutex> m1Guard(tensor_queue_lock);
-		for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
-			tensor_queue.emplace(std::move(*iter));
+		//vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
+		//Mats2Tensors(rectMats, rectsTensors, model1_batchsize);
+		//std::unique_lock<std::mutex> m1Guard(queue_lock);
+		//for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
+		//	data_queue.emplace(std::move(*iter));
+		//}
+		std::unique_lock<std::mutex> m1Guard(queue_lock);
+		for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++)
+		{
+			data_queue2.emplace(std::move(*iter));
 		}
 		m1Guard.unlock();
-		tensor_queue_cv.notify_one();
+		queue_cv.notify_one();
 		tempRectMats.clear();
 	}
 	flag = false;
@@ -351,35 +356,35 @@ bool Model1Holder::checkFlags() {
 	return false;
 }
 
-bool Model1Holder::popModel1Queue(vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors)
+bool Model1Holder::popModel1Queue(vector<std::pair<cv::Rect, cv::Mat>> &rectMats/*vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors*/)
 {
-	std::unique_lock < std::mutex > m1Guard(tensor_queue_lock);
-	if (tensor_queue.size() > 0) {
-		int size = tensor_queue.size();
+	std::unique_lock < std::mutex > m1Guard(queue_lock);
+	if (data_queue2.size() > 0) {
+		int size = data_queue2.size();
 		for (int i = 0; i < size; i++) {
-			rectsTensors.emplace_back(std::move(tensor_queue.front()));
-			tensor_queue.pop();
+			rectMats.emplace_back(std::move(data_queue2.front()));
+			data_queue2.pop();
 		}
 		return true;
 	}
 	else if (checkFlags()) {
-		tensor_queue_cv.wait_for(m1Guard, 3000ms, [this] {
-			if (tensor_queue.size() > 0)
+		queue_cv.wait_for(m1Guard, 3000ms, [this] {
+			if (data_queue2.size() > 0)
 				return true;
 			return false;
 			});
-		int size = tensor_queue.size();
+		int size = data_queue2.size();
 		if (size == 0 && checkFlags()) {
 			m1Guard.unlock();
-			bool flag = popModel1Queue(rectsTensors);
+			bool flag = popModel1Queue(rectMats);
 			return flag;
 		}
 		if (size == 0 && !checkFlags()) {
 			return false;
 		}
 		for (int i = 0; i < size; i++) {
-			rectsTensors.emplace_back(std::move(tensor_queue.front()));
-			tensor_queue.pop();
+			rectMats.emplace_back(std::move(data_queue2.front()));
+			data_queue2.pop();
 		}
 		return true;
 	}
@@ -486,10 +491,9 @@ vector<regionResult> Model1Holder::runModel1(MultiImageRead& mImgRead)
 	mImgRead.setReadLevel(read_level);
 	vector<cv::Rect> rects = get_rects_slide();
 	mImgRead.setRects(rects);
-	std::vector<std::pair<cv::Rect, cv::Mat>> rectMats;
 
 	//在这里开启4个线程
-	int count = 0;
+	//int count = 0;
 	std::thread thread1(&Model1Holder::enterModel1Queue4, this, std::ref(enterFlag3), std::ref(mImgRead));
 	std::thread thread2(&Model1Holder::enterModel1Queue4, this, std::ref(enterFlag4), std::ref(mImgRead));
 	std::thread thread3(&Model1Holder::enterModel1Queue4, this, std::ref(enterFlag5), std::ref(mImgRead));
@@ -497,27 +501,34 @@ vector<regionResult> Model1Holder::runModel1(MultiImageRead& mImgRead)
 	while (!checkFlags()) {
 		continue;
 	}
-	std::vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
-	while (popModel1Queue(rectsTensors))
+	//std::vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
+	std::vector<std::pair<cv::Rect, cv::Mat>> rectMats;
+	while (popModel1Queue(rectMats))
 	{
-		vector<Tensor> tensors;
-		vector<cv::Rect> tmpRects;
-		int size = rectsTensors.size();
-		for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
-			tensors.emplace_back(std::move(iter->second));
-			tmpRects.insert(tmpRects.end(), iter->first.begin(), iter->first.end());
+		//vector<Tensor> tensors;
+		//vector<cv::Rect> tmpRects;
+		//for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
+		//	tensors.emplace_back(std::move(iter->second));
+		//	tmpRects.insert(tmpRects.end(), iter->first.begin(), iter->first.end());
+		//}
+		vector<cv::Mat> input_imgs;
+		vector<cv::Rect> input_rects;
+		for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++)
+		{
+			input_rects.emplace_back(std::move(iter->first));
+			input_imgs.emplace_back(std::move(iter->second));
 		}
-		vector<model1Result> results = model1Handle->model1Process(tensors);
+		vector<model1Result> results = model1Handle->model1Process(input_imgs);
 		for (auto iter = results.begin(); iter != results.end(); iter++) {
 			int place = iter - results.begin();
 			regionResult rResult;
 			rResult.result = *iter;
-			rResult.point.x = tmpRects[place].x * std::pow(slideRatio, read_level);//转为第0层级的图像
-			rResult.point.y = tmpRects[place].y * std::pow(slideRatio, read_level);
+			rResult.point.x = input_rects[place].x * std::pow(slideRatio, read_level);//转为第0层级的图像
+			rResult.point.y = input_rects[place].y * std::pow(slideRatio, read_level);
 			rResults.emplace_back(rResult);
 		}
-		count = count + rectsTensors.size();
-		rectsTensors.clear();
+		//count = count + rectsTensors.size();
+		rectMats.clear();
 	}
 	cout << endl;
 	thread1.join();

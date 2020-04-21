@@ -28,7 +28,7 @@ private:
 	void enterModel1Queue4(std::atomic<bool>& flag, MultiImageRead& mImgRead);
 	vector<cv::Rect> iniRects(int sHeight, int sWidth, int height, int width, int overlap, bool flag_right, bool flag_down);
 	vector<cv::Rect> get_rects_slide();
-	bool popModel1Queue(vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors);
+	bool popModel1Queue(vector<std::pair<cv::Rect, cv::Mat>> &rectMats/*vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors*/);
 	bool checkFlags();
 	void model1Config(string model1Path);
 	bool iniPara(MultiImageRead& mImgRead);
@@ -61,9 +61,10 @@ private:
 	std::atomic<bool> enterFlag4 = false;
 	std::atomic<bool> enterFlag5 = false;
 	std::atomic<bool> enterFlag6 = false;
-	std::mutex tensor_queue_lock;
-	std::condition_variable tensor_queue_cv;
-	std::queue<std::pair<vector<cv::Rect>, Tensor>> tensor_queue;
+	std::mutex queue_lock;
+	std::condition_variable queue_cv;
+	//std::queue<std::pair<vector<cv::Rect>, Tensor>> data_queue;
+	std::queue<std::pair<cv::Rect, cv::Mat>> data_queue2;
 };
 
 #endif
