@@ -8,7 +8,8 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "opencv2/opencv.hpp"
 #include "MultiImageRead.h"
-#include "model1.h"
+//#include "model1.h"
+#include "TfModel1.h"
 //用来保存model1的指针
 //处理model1的输入(多线程读图，怎么裁图等等)
 //返回model1的结果
@@ -30,14 +31,14 @@ private:
 	vector<cv::Rect> get_rects_slide();
 	bool popModel1Queue(vector<std::pair<cv::Rect, cv::Mat>> &rectMats/*vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors*/);
 	bool checkFlags();
-	void model1Config(string model1Path);
+	void model1Config(string iniPath);
 	bool iniPara(MultiImageRead& mImgRead);
 	bool initialize_binImg(MultiImageRead& mImgRead);
 	void threshold_segmentation(cv::Mat& img, cv::Mat& binImg, int level, int thre_col, int thre_vol);
 	void remove_small_objects(cv::Mat& binImg, int thre_vol);
 	//私有成员变量
 private:
-	model1* model1Handle = nullptr;
+	TfModel1* model1Handle = nullptr;
 	int model1Height;
 	int model1Width;
 	float model1Mpp;

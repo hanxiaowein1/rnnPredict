@@ -102,9 +102,6 @@ private:
 	//推荐10个区域(选取前10个区域写入到srp文件里面)
 	vector<Anno> regionProposal(int recom);
 	float runRnn(vector<Anno>& anno, MultiImageRead& mImgRead);
-	float runRnnThread(int i, Tensor &inputTensor);
-	//改成了前10，前20，前30的tensor的分数
-	float runRnnThread2(int i, Tensor& inputTensor);
 	void sortResultsByCoor(vector<regionResult>& results);
 	void sortResultsByScore(vector<regionResult>& results);
 	void sortResultsByScore(vector<PointScore>& pss);

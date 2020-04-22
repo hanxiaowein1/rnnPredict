@@ -15,7 +15,7 @@ struct regionResult
 {
 	cv::Point point;//全局坐标
 	model1Result result;//model的结果
-	vector<float> score2;//model2的结果
+	std::vector<float> score2;//model2的结果
 };
 
 struct PointScore

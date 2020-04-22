@@ -57,9 +57,6 @@
     <ClCompile Include="model.cpp">
       <Filter>源文件\Model</Filter>
     </ClCompile>
-    <ClCompile Include="model1.cpp">
-      <Filter>源文件\Model</Filter>
-    </ClCompile>
     <ClCompile Include="model2.cpp">
       <Filter>源文件\Model</Filter>
     </ClCompile>
@@ -117,6 +114,18 @@
     <ClCompile Include="RnnHolder.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="common.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ModelProp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="TfBase.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="TfModel1.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="commonFunction.h">
@@ -141,9 +150,6 @@
       <Filter>头文件\SlideFactory</Filter>
     </ClInclude>
     <ClInclude Include="model.h">
-      <Filter>头文件\Model</Filter>
-    </ClInclude>
-    <ClInclude Include="model1.h">
       <Filter>头文件\Model</Filter>
     </ClInclude>
     <ClInclude Include="model2.h">
@@ -195,6 +201,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="RnnHolder.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ModelProp.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TfBase.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TfModel1.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

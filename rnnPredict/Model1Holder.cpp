@@ -1,8 +1,8 @@
 #include "Model1Holder.h"
 
-Model1Holder::Model1Holder(string model1Path)
+Model1Holder::Model1Holder(string iniPath)
 {
-	model1Config(model1Path);
+	model1Config(iniPath);
 }
 
 Model1Holder::~Model1Holder()
@@ -53,28 +53,13 @@ bool Model1Holder::iniPara(MultiImageRead& mImgRead)
 	return true;
 }
 
-void Model1Holder::model1Config(string model1Path)
+void Model1Holder::model1Config(string iniPath)
 {
-	modelConfig conf;
-	conf.height = 512;
-	conf.width = 512;
-	conf.channel = 3;
-	conf.opsInput = "input_1:0";
-	conf.opsOutput.emplace_back("dense_2/Sigmoid:0");
-	conf.opsOutput.emplace_back("conv2d_1/truediv:0");
-
-	std::ifstream file(model1Path, std::ios::binary | std::ios::ate);
-	std::streamsize size = file.tellg();
-	std::unique_ptr<char[]> uBuffer(new char[size]);
-	file.seekg(0, std::ios::beg);
-	if (!file.read(uBuffer.get(), size)) {
-		std::cout << "read file to buffer failed" << endl;
-	}
-	model1Handle = new model1(conf, uBuffer.get(), size);
-	model1Mpp = model1Handle->getM1Resolution();
-	model1Height = conf.height;
-	model1Width = conf.width;
-
+	model1Handle = new TfModel1(iniPath, "TfModel1");
+	model1Handle->createThreadPool();
+	model1Mpp = model1Handle->inputProp.mpp;
+	model1Height = model1Handle->inputProp.height;
+	model1Width = model1Handle->inputProp.width;
 }
 
 void Model1Holder::normalize(std::vector<cv::Mat>& imgs, tensorflow::Tensor& tensor)
@@ -518,7 +503,9 @@ vector<regionResult> Model1Holder::runModel1(MultiImageRead& mImgRead)
 			input_rects.emplace_back(std::move(iter->first));
 			input_imgs.emplace_back(std::move(iter->second));
 		}
-		vector<model1Result> results = model1Handle->model1Process(input_imgs);
+		//vector<model1Result> results = model1Handle->model1Process(input_imgs);
+		model1Handle->processDataConcurrency(input_imgs);
+		vector<model1Result> results = model1Handle->m_results;
 		for (auto iter = results.begin(); iter != results.end(); iter++) {
 			int place = iter - results.begin();
 			regionResult rResult;

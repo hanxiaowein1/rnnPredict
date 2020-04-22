@@ -69,8 +69,10 @@ void SlideProc::initialize_handler(const char* iniPath)
 	GetPrivateProfileString(group, pbFile_n_6, "default", rnnParentPath, MAX_PATH, iniPath);
 	//GetPrivateProfileString(group, pbFile_n_7, "default", xgParentPath, MAX_PATH, iniPath);
 
+	string modelConfigIni = "../x64/Release/ModelConfig.ini";
+
 	model1Config(string(model1Path));
-	m1Holder = new Model1Holder(model1Path);
+	m1Holder = new Model1Holder(modelConfigIni);
 	model2Config(string(model2Path));
 	m2Holder = new Model2Holder(model2Path);
 	//model3Config(string(model3Path));
