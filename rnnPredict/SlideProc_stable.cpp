@@ -74,7 +74,7 @@ void SlideProc::initialize_handler(const char* iniPath)
 	model1Config(string(model1Path));
 	m1Holder = new Model1Holder(modelConfigIni);
 	model2Config(string(model2Path));
-	m2Holder = new Model2Holder(model2Path);
+	m2Holder = new Model2Holder(modelConfigIni);
 	//model3Config(string(model3Path));
 	m3Holder = new Model3Holder(model3Path);
 	rnnConfig(string(rnnParentPath));

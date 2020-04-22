@@ -1,24 +1,25 @@
 #pragma once
 #ifndef _MODEL2HOLDER_H_
 #define _MODEL2HOLDER_H_
-#include "model2.h"
+//#include "model2.h"
+#include "TfModel2.h"
 #include "MultiImageRead.h"
 class Model2Holder
 {
 public:
 	Model2Holder();
-	Model2Holder(string model2Path);
+	Model2Holder(string iniPath);
 	~Model2Holder();
-	void runModel2(MultiImageRead& mImgRead, vector<regionResult>& rResults);
-	void model2Process(vector<cv::Mat>& imgs, vector<Tensor>& tensors);
+	void runModel2(MultiImageRead& mImgRead, std::vector<regionResult>& rResults);
+	void model2Process(std::vector<cv::Mat>& imgs, std::vector<tensorflow::Tensor>& tensors);
 private:
 	void enterModel2Queue(MultiImageRead& mImgRead);
-	bool popModel2Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
-	void sortResultsByScore(vector<regionResult>& results);
-	void model2Config(string model2Path);
+	bool popModel2Queue(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
+	void sortResultsByScore(std::vector<regionResult>& results);
+	void model2Config(std::string iniPath);
 	void initPara(MultiImageRead &mImgRead);
 private:
-	model2* model2Handle = nullptr;
+	TfModel2* model2Handle = nullptr;
 	int model1Height;
 	int model1Width;
 	float model1Mpp;

@@ -7,7 +7,6 @@
 #include <thread>
 #include <future>
 #include "TfBase.h"
-#include "Model1.h"
 
 //我可以将这个类写成多线程处理类啊！
 //因为从外部从cv::Mat转为tensorflow::Tensor也是时间，而且逻辑也很混乱

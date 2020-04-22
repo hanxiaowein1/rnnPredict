@@ -10,6 +10,12 @@ struct model1Result
 	std::vector<cv::Point> points;//定位点
 };
 
+struct model2Result
+{
+	float score;//model2的分数
+	std::vector<float> tensor;//2048的向量
+};
+
 //一个512*512块的结果
 struct regionResult
 {

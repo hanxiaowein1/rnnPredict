@@ -4,9 +4,9 @@ Model2Holder::Model2Holder()
 {
 }
 
-Model2Holder::Model2Holder(string model2Path)
+Model2Holder::Model2Holder(std::string iniPath)
 {
-	model2Config(model2Path);
+	model2Config(iniPath);
 }
 
 Model2Holder::~Model2Holder()
@@ -25,33 +25,19 @@ void Model2Holder::initPara(MultiImageRead& mImgRead)
 	model1Mpp = 0.586f;
 }
 
-void Model2Holder::model2Config(string model2Path)
+void Model2Holder::model2Config(std::string iniPath)
 {
-	modelConfig conf;
-	conf.height = 256;
-	conf.width = 256;
-	conf.channel = 3;
-	conf.opsInput = "input_1:0";
-	conf.opsOutput.emplace_back("dense_2/Sigmoid:0");
-	conf.opsOutput.emplace_back("global_max_pooling2d_1/Max:0");
-
-	std::ifstream file(model2Path, std::ios::binary | std::ios::ate);
-	std::streamsize size = file.tellg();
-	std::unique_ptr<char[]> uBuffer(new char[size]);
-	file.seekg(0, std::ios::beg);
-	if (!file.read(uBuffer.get(), size)) {
-		std::cout << "read file to buffer failed" << endl;
-	}
-	model2Handle = new model2(conf, uBuffer.get(), size);
-	model2Mpp = model2Handle->getM2Res();
-	model2Height = conf.height;
-	model2Width = conf.width;
+	model2Handle = new TfModel2(iniPath, "TfModel2");
+	model2Handle->createThreadPool();
+	model2Mpp = model2Handle->inputProp.mpp;
+	model2Height = model2Handle->inputProp.height;
+	model2Width = model2Handle->inputProp.width;
 }
 
 void Model2Holder::enterModel2Queue(MultiImageRead& mImgRead)
 {
 	enterFlag2 = true;
-	vector<std::pair<cv::Rect, cv::Mat>> tempRectMats;
+	std::vector<std::pair<cv::Rect, cv::Mat>> tempRectMats;
 	while (mImgRead.popQueue(tempRectMats)) {
 		for (auto iter = tempRectMats.begin(); iter != tempRectMats.end(); iter++) {
 			if (iter->second.cols != model2Width) {
@@ -69,7 +55,7 @@ void Model2Holder::enterModel2Queue(MultiImageRead& mImgRead)
 	enterFlag2 = false;
 }
 
-bool Model2Holder::popModel2Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
+bool Model2Holder::popModel2Queue(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
 {
 	//先加锁
 	std::unique_lock < std::mutex > m2Guard(queue2Lock);
@@ -109,7 +95,7 @@ bool Model2Holder::popModel2Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats
 	}
 }
 
-void Model2Holder::sortResultsByScore(vector<regionResult>& results)
+void Model2Holder::sortResultsByScore(std::vector<regionResult>& results)
 {
 	auto lambda = [](regionResult result1, regionResult result2)->bool {
 		if (result1.result.score > result2.result.score)
@@ -119,12 +105,13 @@ void Model2Holder::sortResultsByScore(vector<regionResult>& results)
 	std::sort(results.begin(), results.end(), lambda);
 }
 
-void Model2Holder::model2Process(vector<cv::Mat>& imgs, vector<Tensor>& tensors)
+void Model2Holder::model2Process(std::vector<cv::Mat>& imgs, std::vector<tensorflow::Tensor>& tensors)
 {
-	model2Handle->model2Process(imgs, tensors);
+	//model2Handle->model2Process(imgs, tensors);
+	model2Handle->output(imgs, tensors);
 }
 
-void Model2Holder::runModel2(MultiImageRead& mImgRead, vector<regionResult>& rResults)
+void Model2Holder::runModel2(MultiImageRead& mImgRead, std::vector<regionResult>& rResults)
 {
 	initPara(mImgRead);
 	//从rResults里面挑选进入model2的框
@@ -133,12 +120,12 @@ void Model2Holder::runModel2(MultiImageRead& mImgRead, vector<regionResult>& rRe
 	int m2MaxNum = 1200;
 
 	sortResultsByScore(rResults);
-	vector<cv::Rect> rects;
+	std::vector<cv::Rect> rects;
 	int placeStop = 0;
 
 	//我可以一开始就将model1定位点越界的全部干掉啊...
 	//先copy一个副本，清除rResults，然后再从副本里面挑合理的放到rResults里面
-	vector<regionResult> rResultsCP = rResults;
+	std::vector<regionResult> rResultsCP = rResults;
 	rResults.clear();
 	for (auto iter = rResultsCP.begin(); iter != rResultsCP.end(); iter++)
 	{
@@ -259,30 +246,32 @@ void Model2Holder::runModel2(MultiImageRead& mImgRead, vector<regionResult>& rRe
 	}
 	//Sleep(3000);
 	std::vector<std::pair<cv::Rect, cv::Mat>> rectMats;
-	vector<PointScore> model2PS;
+	std::vector<PointScore> model2PS;
 	//int count = 0;
 	while (popModel2Queue(rectMats)/*mImgRead.popQueue(rectMats)*/)
 	{
-		vector<cv::Mat> imgs;
-		vector<cv::Rect> tmpRects;
+		std::vector<cv::Mat> imgs;
+		std::vector<cv::Rect> tmpRects;
 		for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++) {
 			imgs.emplace_back(std::move(iter->second));//用move语义将其放到新的里面
 			tmpRects.emplace_back(std::move(iter->first));
 		}
-		vector<float> scores = model2Handle->model2Process(imgs);
+		//vector<float> scores = model2Handle->model2Process(imgs);
+		model2Handle->processDataConcurrency(imgs);
+		std::vector<model2Result> tempResults = model2Handle->m_results;
 		for (int i = 0; i < tmpRects.size(); i++) {
 			PointScore ps;
 			cv::Point point;
 			point.x = tmpRects[i].x;
 			point.y = tmpRects[i].y;
 			ps.point = point;
-			ps.score = scores[i];
+			ps.score = tempResults[i].score;
 			model2PS.emplace_back(ps);
 		}
 		rectMats.clear();
 	}
 	threadEnterQueue.join();
-	vector<vector<bool>> inFlag(placeStop);
+	std::vector<std::vector<bool>> inFlag(placeStop);
 	for (int i = 0; i < placeStop; i++) {
 		int allocSize = rResults[i].result.points.size() - 1;
 		if (allocSize > 0) {
