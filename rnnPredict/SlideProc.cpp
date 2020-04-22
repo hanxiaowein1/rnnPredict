@@ -19,9 +19,7 @@ void SlideProc::freeMemory()
 	delete m1Holder;
 	delete m2Holder;
 	delete m3Holder;
-	for (int i = 0; i < rnnHandle.size(); i++) {
-		delete rnnHandle[i];
-	}
+	delete rnnHolder;
 }
 
 bool SlideProc::iniPara2(const char* slide, MultiImageRead& mImgRead)
@@ -349,7 +347,7 @@ float SlideProc::runRnn(vector<Anno>& annos, MultiImageRead& mImgRead)
 
 
 	//将10张图像放到model2中进行预测得到tensor
-	vector<Tensor> tensors;
+	vector<tensorflow::Tensor> tensors;
 	vector<cv::Mat> imgs;
 	for (int i = 0; i < rectMats.size(); i++) {
 		imgs.emplace_back(std::move(rectMats2[i].second));
@@ -396,11 +394,11 @@ void SlideProc::filterBaseOnPoint(vector<PointScore>& PointScores, int threshold
 	psCopy.insert(psCopy.end(), PointScores.begin(), PointScores.end());
 	PointScores.clear();
 	for (auto iter = psCopy.begin(); iter != psCopy.end(); iter++) {
-		Point point = iter->point;
+		cv::Point point = iter->point;
 		int place = iter - psCopy.begin();
 		bool flag = true;
 		for (auto iter2 = PointScores.begin(); iter2 != PointScores.end(); iter2++) {
-			Point point2 = iter2->point;
+			cv::Point point2 = iter2->point;
 			int x_dis = std::abs(point.x - point2.x);
 			int y_dis = std::abs(point.y - point2.y);
 			int dis_square = std::pow(x_dis, 2) + std::pow(y_dis, 2);
@@ -493,7 +491,7 @@ bool SlideProc::checkFlags2()
 	return false;
 }
 
-bool SlideProc::popModel2Queue(vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors)
+bool SlideProc::popModel2Queue(vector<std::pair<vector<cv::Rect>, tensorflow::Tensor>>& rectsTensors)
 {
 	std::unique_lock < std::mutex > m2Guard(tensor_queue_lock2);
 	if (tensor_queue2.size() > 0) {

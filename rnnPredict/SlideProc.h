@@ -3,10 +3,6 @@
 #ifndef _SLIDEPROC_H_
 #define _SLIDEPROC_H_
 #include <ctime>
-#include "model1.h"
-#include "model2.h"
-#include "model3.h"
-#include "rnn.h"
 #include "MultiImageRead.h"
 #include "SrpSlideRead.h"
 #include "Model1Holder.h"
@@ -28,7 +24,7 @@ private:
 	Model3Holder* m3Holder = nullptr;
 	RnnHolder* rnnHolder = nullptr;
 
-	vector<rnn*> rnnHandle;
+	//vector<rnn*> rnnHandle;
 	vector<regionResult> rResults;
 	int recomNum = 30;
 	string m_slide;
@@ -67,7 +63,7 @@ private:
 	std::atomic<bool> enterFlag10 = false;
 	queue<std::pair<cv::Rect, cv::Mat>> model1Queue;//用来保存从多线程读图之后然后在进行相关操作的图像
 	queue<std::pair<cv::Rect, cv::Mat>> model2Queue;
-	queue<std::pair<vector<cv::Rect>, Tensor>> tensor_queue2;
+	queue<std::pair<vector<cv::Rect>, tensorflow::Tensor>> tensor_queue2;
 
 	//裁取的宽高信息
 	int block_height = 8192;
@@ -114,10 +110,10 @@ private:
 	//从mImgRead读取一个长条进行处理
 	void enterModel1Queue2(MultiImageRead& mImgRead);
 	bool popModel1Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);//从本队列中读图
-	bool popModel1Queue(vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors);
+	bool popModel1Queue(vector<std::pair<vector<cv::Rect>, tensorflow::Tensor>>& rectsTensors);
 	bool checkFlags2();
 	bool popModel2Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
-	bool popModel2Queue(vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors);
+	bool popModel2Queue(vector<std::pair<vector<cv::Rect>, tensorflow::Tensor>>& rectsTensors);
 	//初始化根据mpp和ration变化而导致各种变化的参数
 	bool iniPara(const char* slide, MultiImageRead& mImgRead);
 	//先在程序中尝试去掉m_srpRead，m_sdpcRead，m_osRead

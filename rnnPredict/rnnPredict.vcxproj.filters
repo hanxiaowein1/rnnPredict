@@ -54,9 +54,6 @@
     <ClCompile Include="SrpSlideRead.cpp">
       <Filter>源文件\SlideFactory</Filter>
     </ClCompile>
-    <ClCompile Include="model.cpp">
-      <Filter>源文件\Model</Filter>
-    </ClCompile>
     <ClCompile Include="SlideProc.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -65,9 +62,6 @@
     </ClCompile>
     <ClCompile Include="DLLManager.cpp">
       <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="rnn.cpp">
-      <Filter>源文件\Model</Filter>
     </ClCompile>
     <ClCompile Include="interface.cpp">
       <Filter>源文件</Filter>
@@ -93,9 +87,6 @@
     <ClCompile Include="SlideProc_stable.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="rnn1.cpp">
-      <Filter>源文件\Model</Filter>
-    </ClCompile>
     <ClCompile Include="Model1Holder.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -111,20 +102,23 @@
     <ClCompile Include="common.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="ModelProp.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="TfBase.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\Model</Filter>
     </ClCompile>
     <ClCompile Include="TfModel1.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\Model</Filter>
     </ClCompile>
     <ClCompile Include="TfModel2.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\Model</Filter>
     </ClCompile>
     <ClCompile Include="TfModel3.cpp">
-      <Filter>源文件</Filter>
+      <Filter>源文件\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="TfRnn.cpp">
+      <Filter>源文件\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="ModelProp.cpp">
+      <Filter>源文件\Model</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -149,9 +143,6 @@
     <ClInclude Include="SrpSlideRead.h">
       <Filter>头文件\SlideFactory</Filter>
     </ClInclude>
-    <ClInclude Include="model.h">
-      <Filter>头文件\Model</Filter>
-    </ClInclude>
     <ClInclude Include="types.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -167,9 +158,6 @@
     <ClInclude Include="DLLManager.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="rnn.h">
-      <Filter>头文件\Model</Filter>
-    </ClInclude>
     <ClInclude Include="interface.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -181,9 +169,6 @@
     </ClInclude>
     <ClInclude Include="SlideQualityCheck.h">
       <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="rnn1.h">
-      <Filter>头文件\Model</Filter>
     </ClInclude>
     <ClInclude Include="Model1Holder.h">
       <Filter>头文件</Filter>
@@ -197,20 +182,23 @@
     <ClInclude Include="RnnHolder.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="ModelProp.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="TfModel1.h">
+      <Filter>头文件\Model</Filter>
     </ClInclude>
     <ClInclude Include="TfBase.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="TfModel1.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\Model</Filter>
     </ClInclude>
     <ClInclude Include="TfModel2.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\Model</Filter>
     </ClInclude>
     <ClInclude Include="TfModel3.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="ModelProp.h">
+      <Filter>头文件\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="TfRnn.h">
+      <Filter>头文件\Model</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

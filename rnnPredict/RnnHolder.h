@@ -2,7 +2,8 @@
 #ifndef _RNNHOLDER_H_
 #define _RNNHOLDER_H_
 
-#include "rnn.h"
+//#include "rnn.h"
+#include "TfRnn.h"
 #include "MultiImageRead.h"
 class RnnHolder
 {
@@ -13,9 +14,11 @@ public:
 	//输入为model2的十张图像的输出
 	float runRnn(tensorflow::Tensor& tensor);
 private:
-	float runRnnThread2(int i, Tensor& inputTensor);
+	void rnnConfig(string iniPath);
+	float runRnnThread2(int i, tensorflow::Tensor& inputTensor);
 private:
-	vector<rnn*> rnnHandle;
+	//vector<rnn*> rnnHandle;
+	vector<TfRnn*> rnnHandle;
 
 };
 

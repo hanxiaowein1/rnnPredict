@@ -125,15 +125,12 @@
     <ClCompile Include="DLLManager.cpp" />
     <ClCompile Include="interface.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="model.cpp" />
     <ClCompile Include="Model1Holder.cpp" />
     <ClCompile Include="Model2Holder.cpp" />
     <ClCompile Include="Model3Holder.cpp" />
     <ClCompile Include="ModelProp.cpp" />
     <ClCompile Include="MultiImageRead.cpp" />
     <ClCompile Include="OpenSlideRead.cpp" />
-    <ClCompile Include="rnn.cpp" />
-    <ClCompile Include="rnn1.cpp" />
     <ClCompile Include="RnnHolder.cpp" />
     <ClCompile Include="SdpcSlideRead.cpp" />
     <ClCompile Include="SlideFactory.cpp" />
@@ -147,6 +144,7 @@
     <ClCompile Include="TfModel1.cpp" />
     <ClCompile Include="TfModel2.cpp" />
     <ClCompile Include="TfModel3.cpp" />
+    <ClCompile Include="TfRnn.cpp" />
     <ClCompile Include="tinystr.cpp" />
     <ClCompile Include="tinyxml.cpp" />
     <ClCompile Include="tinyxmlerror.cpp" />
@@ -156,7 +154,6 @@
     <ClInclude Include="commonFunction.h" />
     <ClInclude Include="DLLManager.h" />
     <ClInclude Include="interface.h" />
-    <ClInclude Include="model.h" />
     <ClInclude Include="Model1Holder.h" />
     <ClInclude Include="Model2Holder.h" />
     <ClInclude Include="Model3Holder.h" />
@@ -164,8 +161,6 @@
     <ClInclude Include="MultiImageRead.h" />
     <ClInclude Include="OpenSlideRead.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="rnn.h" />
-    <ClInclude Include="rnn1.h" />
     <ClInclude Include="RnnHolder.h" />
     <ClInclude Include="SdpcSlideRead.h" />
     <ClInclude Include="SlideFactory.h" />
@@ -177,6 +172,7 @@
     <ClInclude Include="TfModel1.h" />
     <ClInclude Include="TfModel2.h" />
     <ClInclude Include="TfModel3.h" />
+    <ClInclude Include="TfRnn.h" />
     <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="tinystr.h" />
     <ClInclude Include="tinyxml.h" />

@@ -344,7 +344,7 @@ void SlideProc::enterModel1Queue2(MultiImageRead& mImgRead)
 				rect.height = model1Height;
 				rectMat.first = rect;
 				rectMat.second = iter->second(*iter2);
-				cv::resize(rectMat.second, rectMat.second, Size(model1Height, model1Width));
+				cv::resize(rectMat.second, rectMat.second, cv::Size(model1Height, model1Width));
 				rectMats.emplace_back(std::move(rectMat));
 			}
 		}

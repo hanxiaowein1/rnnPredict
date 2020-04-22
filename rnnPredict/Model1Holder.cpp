@@ -156,8 +156,8 @@ void Model1Holder::remove_small_objects(cv::Mat& binImg, int thre_vol)
 {
 	//去除img中小的区域
 	vector<vector<cv::Point>> contours;
-	vector<Vec4i> hierarchy;
-	findContours(binImg, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
+	vector<cv::Vec4i> hierarchy;
+	findContours(binImg, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 	double threshold = thre_vol;//面积的阈值
 	vector<vector<cv::Point>> finalContours;
 	for (int i = 0; i < contours.size(); i++) {
@@ -167,8 +167,8 @@ void Model1Holder::remove_small_objects(cv::Mat& binImg, int thre_vol)
 		}
 	}
 	if (finalContours.size() > 0) {
-		cv::Mat finalMat(binImg.rows, binImg.cols, CV_8UC1, Scalar(0));
-		cv::fillPoly(finalMat, finalContours, Scalar(255));
+		cv::Mat finalMat(binImg.rows, binImg.cols, CV_8UC1, cv::Scalar(0));
+		cv::fillPoly(finalMat, finalContours, cv::Scalar(255));
 		binImg = finalMat.clone();
 	}
 }
@@ -263,7 +263,7 @@ void Model1Holder::enterModel1Queue4(std::atomic<bool>& flag, MultiImageRead& mI
 				rect.height = model1Height;
 				rectMat.first = rect;
 				rectMat.second = iter->second(*iter2);
-				cv::resize(rectMat.second, rectMat.second, Size(model1Height, model1Width));
+				cv::resize(rectMat.second, rectMat.second, cv::Size(model1Height, model1Width));
 				rectMats.emplace_back(std::move(rectMat));
 			}
 		}

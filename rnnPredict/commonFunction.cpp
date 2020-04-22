@@ -118,7 +118,7 @@ void getFiles(string path, vector<string> &files, string suffix)
 	}
 }
 
-void showTensor(Tensor &tensor)
+void showTensor(tensorflow::Tensor &tensor)
 {
 	int dims = tensor.dims();
 	cout << "dims is: " << dims;

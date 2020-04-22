@@ -134,13 +134,13 @@ void MultiImageRead::m_GammaCorrection(cv::Mat& src, cv::Mat& dst, float fGamma)
 {
 	unsigned char lut[256];
 	for (int i = 0; i < 256; i++) {
-		lut[i] = saturate_cast<uchar>(int(pow((float)(i / 255.0), fGamma) * 255.0f));
+		lut[i] = cv::saturate_cast<uchar>(int(pow((float)(i / 255.0), fGamma) * 255.0f));
 	}
 	//dst = src.clone();
 	const int channels = dst.channels();
 	switch (channels) {
 	case 1: {
-		MatIterator_<uchar> it, end;
+		cv::MatIterator_<uchar> it, end;
 		for (it = dst.begin<uchar>(), end = dst.end<uchar>(); it != end; it++)
 			*it = lut[(*it)];
 		break;

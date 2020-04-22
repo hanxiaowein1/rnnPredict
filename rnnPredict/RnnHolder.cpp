@@ -5,35 +5,9 @@ RnnHolder::RnnHolder()
 {
 }
 
-RnnHolder::RnnHolder(string rnnParentPath)
+RnnHolder::RnnHolder(string iniPath)
 {
-	vector<string> rnnPaths;
-	getFiles(rnnParentPath, rnnPaths, "pb");
-	if (rnnPaths.size() != 6) {
-		cout << "rnn model number should be 6\n";
-		return;
-	}
-	for (auto iter = rnnPaths.begin(); iter != rnnPaths.end(); iter++)
-	{
-		int place = iter - rnnPaths.begin();
-		//读取模型
-		modelConfig conf;
-		conf.height = 256;//这些配置都无所谓了
-		conf.width = 256;
-		conf.channel = 3;
-		conf.opsInput = "feature_input:0";
-		conf.opsOutput.emplace_back("output/Sigmoid:0");
-		std::ifstream file(*iter, std::ios::binary | std::ios::ate);
-		std::streamsize size = file.tellg();
-		char* buffer = new char[size];
-		file.seekg(0, std::ios::beg);
-		if (!file.read(buffer, size)) {
-			cout << "read file to buffer failed" << endl;
-		}
-		rnn* rnnBase = new rnn(conf, buffer, size);
-		rnnHandle.emplace_back(rnnBase);
-		delete[]buffer;
-	}
+	rnnConfig(iniPath);
 }
 
 RnnHolder::~RnnHolder()
@@ -43,11 +17,22 @@ RnnHolder::~RnnHolder()
 	}
 }
 
+void RnnHolder::rnnConfig(string iniPath)
+{
+	vector<string> groups{"TfRnn1","TfRnn2", "TfRnn3", "TfRnn4", "TfRnn5", "TfRnn6"};
+	for (auto iter : groups)
+	{
+		TfRnn* rnn_obj = new TfRnn(iniPath, iter);
+		rnnHandle.emplace_back(rnn_obj);
+	}
+
+}
+
 float RnnHolder::runRnn(tensorflow::Tensor& tensor)
 {
-	vector<Tensor> rnnInputTensor;
-	Tensor tensor10 = tensor.Slice(0, 10);
-	Tensor tensor20 = tensor.Slice(0, 20);
+	vector<tensorflow::Tensor> rnnInputTensor;
+	tensorflow::Tensor tensor10 = tensor.Slice(0, 10);
+	tensorflow::Tensor tensor20 = tensor.Slice(0, 20);
 	rnnInputTensor.emplace_back(tensor10);
 	rnnInputTensor.emplace_back(tensor20);
 	rnnInputTensor.emplace_back(tensor);
@@ -102,7 +87,7 @@ float RnnHolder::runRnn(tensorflow::Tensor& tensor)
 	return retScore;
 }
 
-float RnnHolder::runRnnThread2(int i, Tensor& inputTensor)
+float RnnHolder::runRnnThread2(int i, tensorflow::Tensor& inputTensor)
 {
 	//对inputTensor要转为1*?*?
 	if (inputTensor.dims() != 2)
@@ -114,8 +99,6 @@ float RnnHolder::runRnnThread2(int i, Tensor& inputTensor)
 		tensorflow::DataType::DT_FLOAT, tensorflow::TensorShape({ 1, inputTensor.dim_size(0), inputTensor.dim_size(1) }));
 	std::memcpy(tem_tensor_res.flat<float>().data(), inputTensor.flat<float>().data(),
 		inputTensor.dim_size(0) * inputTensor.dim_size(1) * sizeof(float));
-	vector<Tensor> outputTensor;
-	rnnHandle[i]->output(tem_tensor_res, outputTensor);
-	vector<float> score = rnnHandle[i]->rnnProcess(outputTensor[0]);
+	vector<float> score = rnnHandle[i]->rnnProcess(tem_tensor_res);
 	return score[0];
 }

@@ -8,15 +8,15 @@
 void concatTest()
 {
 	using namespace tensorflow::ops;
-	Scope root = Scope::NewRootScope();
+	tensorflow::Scope root = tensorflow::Scope::NewRootScope();
 	auto t1 = Const(root, { {1.f, 2.f}, {3.f, 4.f} });
 	auto t2 = Const(root, { {5.f, 6.f}, {7.f, 8.f}, {9.f, 0.f} });
 	auto concatT1T2 = Concat(root.WithOpName("ConcatT1T2"), { t1, t2 }, 0);
-	std::vector<Tensor> outputs;
-	ClientSession session(root);
+	std::vector<tensorflow::Tensor> outputs;
+	tensorflow::ClientSession session(root);
 	TF_CHECK_OK(session.Run({ concatT1T2 }, &outputs));
 	// Get output tensor
-	Tensor result = outputs[0];
+	tensorflow::Tensor result = outputs[0];
 	// Print output
 	LOG(INFO) << result.matrix<float>();
 }
@@ -25,13 +25,13 @@ void GammaCorrection(cv::Mat& src, cv::Mat& dst, float fGamma)
 {
 	unsigned char lut[256];
 	for (int i = 0; i < 256; i++) {
-		lut[i] = saturate_cast<uchar>(int(pow((float)(i / 255.0), fGamma) * 255.0f));
+		lut[i] = cv::saturate_cast<uchar>(int(pow((float)(i / 255.0), fGamma) * 255.0f));
 	}
 	dst = src.clone();
 	const int channels = dst.channels();
 	switch (channels) {
 	case 1: {
-		MatIterator_<uchar> it, end;
+		cv::MatIterator_<uchar> it, end;
 		for (it = dst.begin<uchar>(), end = dst.end<uchar>(); it != end; it++)
 			*it = lut[(*it)];
 		break;
@@ -50,9 +50,9 @@ void GammaCorrection(cv::Mat& src, cv::Mat& dst, float fGamma)
 	}
 }
 
-vector<Rect> getRects(int srcImgWidth, int srcImgHeight, int dstImgWidth, int dstImgHeight, int m, int n)
+vector<cv::Rect> getRects(int srcImgWidth, int srcImgHeight, int dstImgWidth, int dstImgHeight, int m, int n)
 {
-	vector<Rect> myRects;
+	vector<cv::Rect> myRects;
 	//计算每次裁剪的间隔(hDirect,wDirect)
 	int wDirect = (srcImgWidth - dstImgWidth) / (m - 1);
 	int hDirect = (srcImgHeight - dstImgHeight) / (n - 1);
@@ -61,7 +61,7 @@ vector<Rect> getRects(int srcImgWidth, int srcImgHeight, int dstImgWidth, int ds
 		for (int j = 0; j < m; j++) {
 			int topValue = i * hDirect;
 			int leftValue = j * wDirect;
-			Rect myRect(leftValue, topValue, dstImgWidth, dstImgHeight);
+			cv::Rect myRect(leftValue, topValue, dstImgWidth, dstImgHeight);
 			myRects.push_back(myRect);
 		}
 	}
@@ -411,76 +411,6 @@ void startRun(const char* iniPath)
 
 	subTask(slideList, slideProc, savePath);
 }
-
-#include "model3.h"
-
-model3* model3Config()
-{
-	string model3Path = "D:\\TEST_DATA\\model\\model3\\7th_v2_360.pb";
-	modelConfig conf;
-	conf.height = 256;
-	conf.width = 256;
-	conf.channel = 3;
-	conf.opsInput = "input_1:0";
-	conf.opsOutput.emplace_back("last_dense_output/Softmax:0");
-
-	std::ifstream file(model3Path, std::ios::binary | std::ios::ate);
-	std::streamsize size = file.tellg();
-	std::unique_ptr<char[]> uBuffer(new char[size]);
-	file.seekg(0, std::ios::beg);
-	if (!file.read(uBuffer.get(), size)) {
-		std::cout << "read file to buffer failed" << endl;
-	}
-	model3* model3Handle = new model3(conf, uBuffer.get(), size);
-
-	return model3Handle;
-}
-
-void model3Test()
-{
-	model3* model3Handle = model3Config();
-	//测试几张图像
-	vector<cv::Mat> imgs;
-	vector<string> imgList;
-	getFiles("G:\\HanWei\\fql\\052800092\\", imgList, "tif");
-	for (auto elem : imgList)
-	{
-		imgs.emplace_back(cv::imread(elem));
-	}
-	vector<model3Result> results = model3Handle->model3Process(imgs);
-	for (auto& elem : results)
-	{
-		elem.iniType();
-	}
-	vector<std::pair<int, model3Result>> sortResults;
-	for (int i = 0; i < results.size(); i++)
-	{
-		std::pair<int, model3Result> sortResult;
-		sortResult.first = i;
-		sortResult.second = results[i];
-		sortResults.emplace_back(sortResult);
-	}
-	auto lambda = [](std::pair<int, model3Result> result1, std::pair<int, model3Result> result2)->bool {
-		if (result1.second.type == result2.second.type)
-		{
-			if (result1.second.scores[result1.second.type] > result2.second.scores[result1.second.type])
-				return true;
-			else
-				return false;
-		}
-		else if (result1.second.type < result2.second.type)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	};
-	std::sort(sortResults.begin(), sortResults.end(), lambda);
-	cout << "balabala" << endl;
-}
-
 
 int main(int args, char* argv[])
 {
