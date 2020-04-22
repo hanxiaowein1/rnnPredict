@@ -96,9 +96,6 @@
     <ClCompile Include="rnn1.cpp">
       <Filter>源文件\Model</Filter>
     </ClCompile>
-    <ClCompile Include="model3.cpp">
-      <Filter>源文件\Model</Filter>
-    </ClCompile>
     <ClCompile Include="Model1Holder.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -124,6 +121,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="TfModel2.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="TfModel3.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -185,9 +185,6 @@
     <ClInclude Include="rnn1.h">
       <Filter>头文件\Model</Filter>
     </ClInclude>
-    <ClInclude Include="model3.h">
-      <Filter>头文件\Model</Filter>
-    </ClInclude>
     <ClInclude Include="Model1Holder.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -210,6 +207,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="TfModel2.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TfModel3.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

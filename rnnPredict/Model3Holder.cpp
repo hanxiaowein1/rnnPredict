@@ -3,9 +3,9 @@
 Model3Holder::Model3Holder()
 {}
 
-Model3Holder::Model3Holder(string model3Path)
+Model3Holder::Model3Holder(string iniPath)
 {
-	model3Config(model3Path);
+	model3Config(iniPath);
 }
 
 Model3Holder::~Model3Holder()
@@ -20,26 +20,13 @@ void Model3Holder::initPara(MultiImageRead& mImgRead)
 	mImgRead.getSlideMpp(slideMpp);
 }
 
-void Model3Holder::model3Config(string model3Path)
+void Model3Holder::model3Config(string iniPath)
 {
-	modelConfig conf;
-	conf.height = 256;
-	conf.width = 256;
-	conf.channel = 3;
-	conf.opsInput = "input_1:0";
-	conf.opsOutput.emplace_back("last_dense_output/Softmax:0");
-	std::ifstream file(model3Path, std::ios::binary | std::ios::ate);
-	std::streamsize size = file.tellg();
-	std::unique_ptr<char[]> uBuffer(new char[size]);
-	file.seekg(0, std::ios::beg);
-	if (!file.read(uBuffer.get(), size)) {
-		std::cout << "read file to buffer failed" << endl;
-	}
-	model3Handle = new model3(conf, uBuffer.get(), size);
-
-	model3Height = 256;
-	model3Width = 256;
-	model3Mpp = 0.293f;
+	model3Handle = new TfModel3(iniPath, "TfModel3");
+	model3Handle->createThreadPool();
+	model3Height = model3Handle->inputProp.height;
+	model3Width = model3Handle->inputProp.width;
+	model3Mpp = model3Handle->inputProp.mpp;
 }
 
 bool Model3Holder::popModel2Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
@@ -181,7 +168,8 @@ vector<PointScore> Model3Holder::runModel3(MultiImageRead& mImgRead, vector<Anno
 		imgs.emplace_back(std::move(elem.second));
 	}
 	//¿ªÊ¼Ô¤²â50ÕÅÍ¼Ïñ
-	vector<model3Result> results = model3Handle->model3Process(imgs);
+	model3Handle->processDataConcurrency(imgs);
+	vector<model3Result> results = model3Handle->m_results;
 	for (auto& elem : results)
 	{
 		elem.iniType();
