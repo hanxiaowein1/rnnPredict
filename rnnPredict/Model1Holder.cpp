@@ -55,7 +55,7 @@ bool Model1Holder::iniPara(MultiImageRead& mImgRead)
 
 void Model1Holder::model1Config(string iniPath)
 {
-	model1Handle = new TfModel1(iniPath, "TfModel1");
+	model1Handle = new TrModel1(iniPath, "TrModel1");
 	model1Handle->createThreadPool();
 	model1Mpp = model1Handle->inputProp.mpp;
 	model1Height = model1Handle->inputProp.height;

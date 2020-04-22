@@ -10,6 +10,7 @@
 #include "MultiImageRead.h"
 //#include "model1.h"
 #include "TfModel1.h"
+#include "TrModel1.h"
 //用来保存model1的指针
 //处理model1的输入(多线程读图，怎么裁图等等)
 //返回model1的结果
@@ -38,7 +39,8 @@ private:
 	void remove_small_objects(cv::Mat& binImg, int thre_vol);
 	//私有成员变量
 private:
-	TfModel1* model1Handle = nullptr;
+	//TfModel1* model1Handle = nullptr;
+	TrModel1* model1Handle = nullptr;
 	int model1Height;
 	int model1Width;
 	float model1Mpp;

@@ -28,31 +28,25 @@ void RnnHolder::rnnConfig(string iniPath)
 
 }
 
-float RnnHolder::runRnn(tensorflow::Tensor& tensor)
+float RnnHolder::runRnn(std::vector<model2Result>& results)
 {
-	vector<tensorflow::Tensor> rnnInputTensor;
-	tensorflow::Tensor tensor10 = tensor.Slice(0, 10);
-	tensorflow::Tensor tensor20 = tensor.Slice(0, 20);
-	rnnInputTensor.emplace_back(tensor10);
-	rnnInputTensor.emplace_back(tensor20);
-	rnnInputTensor.emplace_back(tensor);
+	//要先将results转为tensor才可以跑
+	if (results.size() == 0)
+		return 0.0f;
+	//将results转为tensor就可以使用runRnn(Tensor)了
+	tensorflow::Tensor tem_tensor_res(
+		tensorflow::DataType::DT_FLOAT, tensorflow::TensorShape({ (long long)results.size(), (long long)results[0].tensor.size() }));
+	//然后将input拷贝到rnnInput里面才可以运行
+	for (int i = 0; i < results.size(); i++)
+	{
+		float* ptr = tem_tensor_res.flat<float>().data() + i * results[0].tensor.size();
+		std::memcpy(ptr, results[i].tensor.data(), results[0].tensor.size() * sizeof(float));
+	}
+	return runRnn(tem_tensor_res);
+}
 
-	vector<std::future<float>> rnnResults(rnnHandle.size());
-	for (int i = 0; i < rnnHandle.size(); i++)
-	{
-		rnnResults[i] = std::async(&RnnHolder::runRnnThread2, this, i, std::ref(rnnInputTensor[i / 2]));
-	}
-	vector<float> rnnResults_f;
-	for (int i = 0; i < rnnResults.size(); i++)
-	{
-		rnnResults_f.emplace_back(rnnResults[i].get());
-	}
-	cout << "rnnResults_f: ";
-	for (int i = 0; i < rnnResults_f.size(); i++)
-	{
-		cout << rnnResults_f[i] << " ";
-	}
-	cout << endl;
+float RnnHolder::outputSix(vector<float>& rnnResults_f)
+{
 	if (rnnResults_f.size() != 6)
 		return -1;
 	//先求6个数的平均值
@@ -84,6 +78,29 @@ float RnnHolder::runRnn(tensorflow::Tensor& tensor)
 	}
 	else
 		retScore = avg_6;
+	return retScore;
+}
+
+float RnnHolder::runRnn(tensorflow::Tensor& tensor)
+{
+	vector<tensorflow::Tensor> rnnInputTensor;
+	tensorflow::Tensor tensor10 = tensor.Slice(0, 10);
+	tensorflow::Tensor tensor20 = tensor.Slice(0, 20);
+	rnnInputTensor.emplace_back(tensor10);
+	rnnInputTensor.emplace_back(tensor20);
+	rnnInputTensor.emplace_back(tensor);
+
+	vector<std::future<float>> rnnResults(rnnHandle.size());
+	for (int i = 0; i < rnnHandle.size(); i++)
+	{
+		rnnResults[i] = std::async(&RnnHolder::runRnnThread2, this, i, std::ref(rnnInputTensor[i / 2]));
+	}
+	vector<float> rnnResults_f;
+	for (int i = 0; i < rnnResults.size(); i++)
+	{
+		rnnResults_f.emplace_back(rnnResults[i].get());
+	}
+	float retScore = outputSix(rnnResults_f);
 	return retScore;
 }
 

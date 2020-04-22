@@ -27,7 +27,7 @@ void Model2Holder::initPara(MultiImageRead& mImgRead)
 
 void Model2Holder::model2Config(std::string iniPath)
 {
-	model2Handle = new TfModel2(iniPath, "TfModel2");
+	model2Handle = new TrModel2(iniPath, "TrModel2");
 	model2Handle->createThreadPool();
 	model2Mpp = model2Handle->inputProp.mpp;
 	model2Height = model2Handle->inputProp.height;
@@ -105,10 +105,10 @@ void Model2Holder::sortResultsByScore(std::vector<regionResult>& results)
 	std::sort(results.begin(), results.end(), lambda);
 }
 
-void Model2Holder::model2Process(std::vector<cv::Mat>& imgs, std::vector<tensorflow::Tensor>& tensors)
+void Model2Holder::model2Process(std::vector<cv::Mat>& imgs, std::vector<model2Result>& results)
 {
-	//model2Handle->model2Process(imgs, tensors);
-	model2Handle->output(imgs, tensors);
+	model2Handle->processDataConcurrency(imgs);
+	results = model2Handle->m_results;
 }
 
 void Model2Holder::runModel2(MultiImageRead& mImgRead, std::vector<regionResult>& rResults)

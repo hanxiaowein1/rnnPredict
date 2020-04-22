@@ -352,9 +352,10 @@ float SlideProc::runRnn(vector<Anno>& annos, MultiImageRead& mImgRead)
 	for (int i = 0; i < rectMats.size(); i++) {
 		imgs.emplace_back(std::move(rectMats2[i].second));
 	}
-	m2Holder->model2Process(imgs, tensors);
+	vector<model2Result> tempResults;
+	m2Holder->model2Process(imgs, tempResults);
 
-	float retScore = rnnHolder->runRnn(tensors[1]);
+	float retScore = rnnHolder->runRnn(tempResults);
 	return retScore;
 }
 
@@ -674,10 +675,14 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 	sortResultsByCoor(rResults);
 
 	vector<Anno> annos = regionProposal(30);
+	now = time(0);
+	cout << "start rnn process: " << (char*)ctime(&now);
 	slideScore = runRnn(annos, mImgRead);
 
 	//在这里测试一下model3
 	vector<Anno> annos_for_m3 = regionProposal(50);
+	now = time(0);
+	cout << "start model3 process: " << (char*)ctime(&now);
 	vector<PointScore> m3Results = m3Holder->runModel3(mImgRead, annos_for_m3);
 	//vector<PointScore> m3Results = runModel3(mImgRead);
 	if (m3Results.size() > 10)
@@ -691,6 +696,8 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 		if(m3Results.size()>10)
 			m3Results.erase(m3Results.begin() + 10, m3Results.end());
 	}
+	now = time(0);
+	cout << "start save image: " << (char*)ctime(&now);
 	//将model3和model2的图像全部都保存下来进行查看
 	string model2ResultPath = in_savePath + "\\model2";
 	string model3ResultPath = in_savePath + "\\model3";
