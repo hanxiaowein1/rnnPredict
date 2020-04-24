@@ -15,6 +15,7 @@ class MultiImageRead
 {
 private:
 	std::mutex rectMutex;
+	string m_slidePath;
 	std::queue<cv::Rect> m_rects;//用来保存需要读取的图像的起点和宽高
 	std::condition_variable cv_rects;//如果进入了新的rect，就唤醒addTask进行操作
 

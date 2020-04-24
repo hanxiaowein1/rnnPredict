@@ -21,6 +21,7 @@ public:
 	Model1Holder(string model1Path);
 	~Model1Holder();
 	vector<regionResult> runModel1(MultiImageRead& mImgRead);
+	void createThreadPool(int threadNum);
 	//私有成员函数
 private:
 	//以batchsize为阈值，将imgs放到tensors里面，每batchsize的图像放到一个tensors里面
@@ -28,9 +29,12 @@ private:
 	void Mats2Tensors(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats, std::vector<std::pair<std::vector<cv::Rect>, tensorflow::Tensor>>& rectsTensors, int batchsize);
 	void normalize(std::vector<cv::Mat>& imgs, tensorflow::Tensor& tensor);
 	void enterModel1Queue4(std::atomic<bool>& flag, MultiImageRead& mImgRead);
+	void enterModel1Queue(MultiImageRead& mImgRead);
 	vector<cv::Rect> iniRects(int sHeight, int sWidth, int height, int width, int overlap, bool flag_right, bool flag_down);
 	vector<cv::Rect> get_rects_slide();
-	bool popModel1Queue(vector<std::pair<cv::Rect, cv::Mat>> &rectMats/*vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors*/);
+	bool popModel1Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
+	void popQueueWithoutLock(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
+	bool popModel1Queue2(vector<std::pair<cv::Rect, cv::Mat>> &rectMats/*vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors*/);
 	bool checkFlags();
 	void model1Config(string iniPath);
 	bool iniPara(MultiImageRead& mImgRead);
@@ -64,10 +68,23 @@ private:
 	std::atomic<bool> enterFlag4 = false;
 	std::atomic<bool> enterFlag5 = false;
 	std::atomic<bool> enterFlag6 = false;
-	std::mutex queue_lock;
-	std::condition_variable queue_cv;
+	std::mutex data_mutex;
+	std::condition_variable data_cv;
 	//std::queue<std::pair<vector<cv::Rect>, Tensor>> data_queue;
 	std::queue<std::pair<cv::Rect, cv::Mat>> data_queue2;
+
+	//更改多线程的形式，开启线程池，然后将重复的task推到tasks里面(还是照抄以前的套路而已)
+	using Task = std::function<void()>;
+	//线程池
+	std::vector<std::thread> pool;
+	// 任务队列
+	std::condition_variable task_cv;
+	std::queue<Task> tasks;
+	std::mutex task_mutex;
+	std::atomic<bool> stopped;//停止线程的标志
+	std::atomic<int> idlThrNum = 1;//闲置线程数量
+	std::atomic<int> totalThrNum = 1;//总共线程数量
+
 };
 
 #endif

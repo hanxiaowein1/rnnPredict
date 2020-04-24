@@ -15,14 +15,8 @@ void clear(std::queue<std::pair<cv::Rect, cv::Mat>>& q)
 
 MultiImageRead::MultiImageRead(const char* slidePath)
 {
-	std::unique_ptr<SlideFactory> sFactory(new SlideFactory());
-	for (int i = 0; i < 8; i++)
-	{
-		sReads.emplace_back(sFactory->createSlideProduct(slidePath));
-	}
+	m_slidePath = string(slidePath);
 	stopped.store(false);
-	std::vector<std::mutex> list(sReads.size());
-	lock_sRead.swap(list);
 }
 
 MultiImageRead::~MultiImageRead()
@@ -51,7 +45,15 @@ MultiImageRead::~MultiImageRead()
 
 void MultiImageRead::createThreadPool()
 {
-	int num = idlThrNum;
+	std::unique_ptr<SlideFactory> sFactory(new SlideFactory());
+	for (int i = 0; i < totalThrNum; i++)
+	{
+		sReads.emplace_back(sFactory->createSlideProduct(m_slidePath.c_str()));
+	}
+	std::vector<std::mutex> list(sReads.size());
+	lock_sRead.swap(list);
+	int num = totalThrNum;
+
 	for (int size = 0; size < num; ++size)
 	{   //初始化线程数量
 		pool.emplace_back(

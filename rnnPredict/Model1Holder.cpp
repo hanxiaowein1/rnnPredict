@@ -7,7 +7,411 @@ Model1Holder::Model1Holder(string iniPath)
 
 Model1Holder::~Model1Holder()
 {
+	stopped.store(true);
+	data_cv.notify_all();
+	task_cv.notify_all();
+	for (std::thread& thread : pool) {
+		if (thread.joinable())
+			thread.join();
+	}
 	delete model1Handle;
+}
+
+void Model1Holder::model1Config(string iniPath)
+{
+	model1Handle = new TrModel1(iniPath, "TrModel1");
+	model1Handle->createThreadPool();
+	model1Mpp = model1Handle->inputProp.mpp;
+	model1Height = model1Handle->inputProp.height;
+	model1Width = model1Handle->inputProp.width;
+}
+
+void Model1Holder::createThreadPool(int threadNum)
+{
+	idlThrNum = threadNum;
+	totalThrNum = threadNum;
+	for (int size = 0; size < totalThrNum; ++size)
+	{   //初始化线程数量
+		pool.emplace_back(
+			[this]
+			{ // 工作线程函数
+				while (!this->stopped.load())
+				{
+					std::function<void()> task;
+					{   // 获取一个待执行的 task
+						std::unique_lock<std::mutex> lock{ this->task_mutex };// unique_lock 相比 lock_guard 的好处是：可以随时 unlock() 和 lock()
+						this->task_cv.wait(lock,
+							[this] {
+								return this->stopped.load() || !this->tasks.empty();
+							}
+						); // wait 直到有 task
+						if (this->stopped.load() && this->tasks.empty())
+							return;
+						task = std::move(this->tasks.front()); // 取一个 task
+						this->tasks.pop();
+					}
+					idlThrNum--;
+					task();
+					idlThrNum++;
+				}
+			}
+			);
+	}
+}
+
+void Model1Holder::enterModel1Queue(MultiImageRead& mImgRead)
+{
+	vector<std::pair<cv::Rect, cv::Mat>> tempRectMats;
+	int cropSize = model1Height * float(model1Mpp / slideMpp);
+	cropSize = cropSize / std::pow(slideRatio, levelBin);
+	while (mImgRead.popQueue(tempRectMats)) {
+		vector<std::pair<cv::Rect, cv::Mat>> rectMats;
+		for (auto iter = tempRectMats.begin(); iter != tempRectMats.end(); iter++) {
+			//cv::imwrite("D:\\TEST_OUTPUT\\rnnPredict\\" + to_string(iter->first.x) + "_" + to_string(iter->first.y) + ".tif", iter->second);
+			bool flag_right = false;
+			bool flag_down = false;
+			if (iter->second.cols != block_width / std::pow(slideRatio, read_level))
+				flag_right = true;
+			if (iter->second.rows != block_height / std::pow(slideRatio, read_level))
+				flag_down = true;
+			int crop_width = int(model1Height * float(model1Mpp / slideMpp)) / std::pow(slideRatio, read_level);
+			int crop_height = int(model1Width * float(model1Mpp / slideMpp)) / std::pow(slideRatio, read_level);
+			int overlap = (int(model1Height * float(model1Mpp / slideMpp)) / 4) / std::pow(slideRatio, read_level);
+			vector<cv::Rect> rects = iniRects(
+				crop_width, crop_height,
+				iter->second.rows, iter->second.cols, overlap, flag_right, flag_down);
+
+			for (auto iter2 = rects.begin(); iter2 != rects.end(); iter2++) {
+				std::pair<cv::Rect, cv::Mat> rectMat;
+				cv::Rect rect;
+				rect.x = iter->first.x + iter2->x;
+				rect.y = iter->first.y + iter2->y;
+				//这里过滤掉在binImg中和为0的图像
+				int startX = rect.x / std::pow(slideRatio, levelBin - read_level);
+				int startY = rect.y / std::pow(slideRatio, levelBin - read_level);
+				cv::Rect rectCrop(startX, startY, cropSize, cropSize);
+				cv::Mat cropMat = binImg(rectCrop);
+				int cropSum = cv::sum(cropMat)[0];
+				if (cropSum <= m_crop_sum * 255)
+					continue;
+				rect.width = model1Width;
+				rect.height = model1Height;
+				rectMat.first = rect;
+				rectMat.second = iter->second(*iter2);
+				cv::resize(rectMat.second, rectMat.second, cv::Size(model1Height, model1Width));
+				rectMats.emplace_back(std::move(rectMat));
+			}
+		}
+		//将rectMats放到tensor的队列里面
+		//vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
+		//Mats2Tensors(rectMats, rectsTensors, model1_batchsize);
+		//std::unique_lock<std::mutex> m1Guard(queue_lock);
+		//for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
+		//	data_queue.emplace(std::move(*iter));
+		//}
+		std::unique_lock<std::mutex> m1Guard(data_mutex);
+		for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++)
+		{
+			data_queue2.emplace(std::move(*iter));
+		}
+		m1Guard.unlock();
+		data_cv.notify_one();
+		tempRectMats.clear();
+	}
+}
+
+void Model1Holder::enterModel1Queue4(std::atomic<bool>& flag, MultiImageRead& mImgRead)
+{
+	flag = true;
+	vector<std::pair<cv::Rect, cv::Mat>> tempRectMats;
+	int cropSize = model1Height * float(model1Mpp / slideMpp);
+	cropSize = cropSize / std::pow(slideRatio, levelBin);
+	while (mImgRead.popQueue(tempRectMats)) {
+		vector<std::pair<cv::Rect, cv::Mat>> rectMats;
+		for (auto iter = tempRectMats.begin(); iter != tempRectMats.end(); iter++) {
+			//cv::imwrite("D:\\TEST_OUTPUT\\rnnPredict\\" + to_string(iter->first.x) + "_" + to_string(iter->first.y) + ".tif", iter->second);
+			bool flag_right = false;
+			bool flag_down = false;
+			if (iter->second.cols != block_width / std::pow(slideRatio, read_level))
+				flag_right = true;
+			if (iter->second.rows != block_height / std::pow(slideRatio, read_level))
+				flag_down = true;
+			int crop_width = int(model1Height * float(model1Mpp / slideMpp)) / std::pow(slideRatio, read_level);
+			int crop_height = int(model1Width * float(model1Mpp / slideMpp)) / std::pow(slideRatio, read_level);
+			int overlap = (int(model1Height * float(model1Mpp / slideMpp)) / 4) / std::pow(slideRatio, read_level);
+			vector<cv::Rect> rects = iniRects(
+				crop_width, crop_height,
+				iter->second.rows, iter->second.cols, overlap, flag_right, flag_down);
+
+			for (auto iter2 = rects.begin(); iter2 != rects.end(); iter2++) {
+				std::pair<cv::Rect, cv::Mat> rectMat;
+				cv::Rect rect;
+				rect.x = iter->first.x + iter2->x;
+				rect.y = iter->first.y + iter2->y;
+				//这里过滤掉在binImg中和为0的图像
+				int startX = rect.x / std::pow(slideRatio, levelBin - read_level);
+				int startY = rect.y / std::pow(slideRatio, levelBin - read_level);
+				cv::Rect rectCrop(startX, startY, cropSize, cropSize);
+				cv::Mat cropMat = binImg(rectCrop);
+				int cropSum = cv::sum(cropMat)[0];
+				if (cropSum <= m_crop_sum * 255)
+					continue;
+				rect.width = model1Width;
+				rect.height = model1Height;
+				rectMat.first = rect;
+				rectMat.second = iter->second(*iter2);
+				cv::resize(rectMat.second, rectMat.second, cv::Size(model1Height, model1Width));
+				rectMats.emplace_back(std::move(rectMat));
+			}
+		}
+		//将rectMats放到tensor的队列里面
+		//vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
+		//Mats2Tensors(rectMats, rectsTensors, model1_batchsize);
+		//std::unique_lock<std::mutex> m1Guard(queue_lock);
+		//for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
+		//	data_queue.emplace(std::move(*iter));
+		//}
+		std::unique_lock<std::mutex> m1Guard(data_mutex);
+		for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++)
+		{
+			data_queue2.emplace(std::move(*iter));
+		}
+		m1Guard.unlock();
+		data_cv.notify_one();
+		tempRectMats.clear();
+	}
+	flag = false;
+}
+
+bool Model1Holder::checkFlags() {
+	if (enterFlag3.load() || enterFlag4.load() || enterFlag5.load() || enterFlag6.load())
+		return true;
+	return false;
+}
+
+void Model1Holder::popQueueWithoutLock(vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
+{
+	int size = data_queue2.size();
+	for (int i = 0; i < size; i++)
+	{
+		rectMats.emplace_back(std::move(data_queue2.front()));
+		data_queue2.pop();
+	}
+}
+
+bool Model1Holder::popModel1Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
+{
+	std::unique_lock<std::mutex> data_lock(data_mutex);
+	if (data_queue2.size() > 0)
+	{
+		popQueueWithoutLock(rectMats);
+		data_lock.unlock();
+		return true;
+	}
+	else
+	{
+		data_lock.unlock();
+		//取得tasks的锁，检查是否还有任务
+		std::unique_lock<std::mutex> task_lock(task_mutex);
+		if (tasks.size() > 0)
+		{
+			task_lock.unlock();
+			//证明有task，那么data_mutex再次锁上，因为一定会有数据唤醒它
+			data_lock.lock();
+			data_cv.wait(data_lock, [this] {
+				if (data_queue2.size() > 0 || stopped.load()) {
+					return true;
+				}
+				else {
+					return false;
+				}
+				});
+			if (stopped.load())
+				return false;
+			popQueueWithoutLock(rectMats);
+			data_lock.unlock();
+			return true;
+		}
+		else
+		{
+			task_lock.unlock();
+			//如果没有task，那么要检查是否有线程在运行
+			if (idlThrNum == totalThrNum)
+			{
+				//如果没有线程在运行，那么在看看队列是否有元素（万一在判断的时候进入了队列了呢？）
+				data_lock.lock();//其实不用加锁，因为没有线程在运行，肯定不会占用锁了
+				popQueueWithoutLock(rectMats);
+				data_lock.unlock();
+				if (rectMats.size() == 0)
+					return false;
+				return true;
+			}
+			else
+			{
+				//如果有线程在运行，那么在锁住队列，等待人来唤醒
+				data_lock.lock();
+				data_cv.wait(data_lock, [this] {
+					if (data_queue2.size() > 0 || stopped.load()) {
+						return true;
+					}
+					else {
+						return false;
+					}
+					});
+				if (stopped.load())
+					return false;
+				popQueueWithoutLock(rectMats);
+				data_lock.unlock();
+				return true;
+			}
+		}
+	}
+}
+
+bool Model1Holder::popModel1Queue2(vector<std::pair<cv::Rect, cv::Mat>> &rectMats/*vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors*/)
+{
+	std::unique_lock < std::mutex > m1Guard(data_mutex);
+	if (data_queue2.size() > 0) {
+		int size = data_queue2.size();
+		for (int i = 0; i < size; i++) {
+			rectMats.emplace_back(std::move(data_queue2.front()));
+			data_queue2.pop();
+		}
+		return true;
+	}
+	else if (checkFlags()) {
+		data_cv.wait_for(m1Guard, 3000ms, [this] {
+			if (data_queue2.size() > 0)
+				return true;
+			return false;
+			});
+		int size = data_queue2.size();
+		if (size == 0 && checkFlags()) {
+			m1Guard.unlock();
+			bool flag = popModel1Queue2(rectMats);
+			return flag;
+		}
+		if (size == 0 && !checkFlags()) {
+			return false;
+		}
+		for (int i = 0; i < size; i++) {
+			rectMats.emplace_back(std::move(data_queue2.front()));
+			data_queue2.pop();
+		}
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+vector<regionResult> Model1Holder::runModel1(MultiImageRead& mImgRead)
+{
+	iniPara(mImgRead);
+	initialize_binImg(mImgRead);
+	vector<regionResult> rResults;
+
+	mImgRead.setReadLevel(read_level);
+	vector<cv::Rect> rects = get_rects_slide();
+	mImgRead.setRects(rects);
+
+	//按照totalThrNum来决定进入几个task
+	for (int i = 0; i < totalThrNum; i++)
+	{
+		auto task = std::make_shared<std::packaged_task<void()>>
+			(std::bind(&Model1Holder::enterModel1Queue,this, std::ref(mImgRead)));
+		std::unique_lock<std::mutex> myGuard(task_mutex);
+		tasks.emplace(
+			[task]() {
+				(*task)();
+			}
+		);
+		myGuard.unlock();
+		task_cv.notify_one();
+	}
+
+
+	//在这里开启4个线程
+	//std::thread thread1(&Model1Holder::enterModel1Queue4, this, std::ref(enterFlag3), std::ref(mImgRead));
+	//std::thread thread2(&Model1Holder::enterModel1Queue4, this, std::ref(enterFlag4), std::ref(mImgRead));
+	//std::thread thread3(&Model1Holder::enterModel1Queue4, this, std::ref(enterFlag5), std::ref(mImgRead));
+	//std::thread thread4(&Model1Holder::enterModel1Queue4, this, std::ref(enterFlag6), std::ref(mImgRead));
+	//while (!checkFlags()) {
+	//	continue;
+	//}
+
+	//std::vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
+	std::vector<std::pair<cv::Rect, cv::Mat>> rectMats;
+	while (popModel1Queue(rectMats))
+	{
+		//vector<Tensor> tensors;
+		//vector<cv::Rect> tmpRects;
+		//for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
+		//	tensors.emplace_back(std::move(iter->second));
+		//	tmpRects.insert(tmpRects.end(), iter->first.begin(), iter->first.end());
+		//}
+		vector<cv::Mat> input_imgs;
+		vector<cv::Rect> input_rects;
+		for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++)
+		{
+			input_rects.emplace_back(std::move(iter->first));
+			input_imgs.emplace_back(std::move(iter->second));
+		}
+		//vector<model1Result> results = model1Handle->model1Process(input_imgs);
+		model1Handle->processDataConcurrency(input_imgs);
+		vector<model1Result> results = model1Handle->m_results;
+		for (auto iter = results.begin(); iter != results.end(); iter++) {
+			int place = iter - results.begin();
+			regionResult rResult;
+			rResult.result = *iter;
+			rResult.point.x = input_rects[place].x * std::pow(slideRatio, read_level);//转为第0层级的图像
+			rResult.point.y = input_rects[place].y * std::pow(slideRatio, read_level);
+			rResults.emplace_back(rResult);
+		}
+		//count = count + rectsTensors.size();
+		rectMats.clear();
+	}
+	cout << endl;
+	//thread1.join();
+	//thread2.join();
+	//thread3.join();
+	//thread4.join();
+
+	return rResults;
+	//int count = 0;
+	//std::thread threadEnterQueue(&SlideProc::enterModel1Queue2, this, std::ref(mImgRead));
+	//while (enterFlag1 != true)
+	//{
+	//	continue;
+	//}
+	//cout << endl;
+	//while (/*mImgRead.popQueue(rectMats)*/popModel1Queue(rectMats))
+	//{
+	//	cout << count << " ";
+	//	vector<cv::Mat> imgs;
+	//	vector<cv::Rect> tmpRects;
+	//	int size = rectMats.size();
+	//	for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++)
+	//	{
+	//		imgs.emplace_back(std::move(iter->second));//用move语义将其放到新的里面
+	//		tmpRects.emplace_back(std::move(iter->first));
+	//	}
+	//	vector<model1Result> results = model1Handle->model1Process(imgs);
+	//	//将得到的结果和全局的坐标信息放到rResults里面
+	//	for (auto iter = results.begin(); iter != results.end(); iter++)
+	//	{
+	//		int place = iter - results.begin();
+	//		regionResult rResult;
+	//		rResult.result = *iter;
+	//		rResult.point.x = tmpRects[place].x;
+	//		rResult.point.y = tmpRects[place].y;
+	//		rResults.emplace_back(rResult);
+	//	}
+	//	count = count + rectMats.size();
+	//	rectMats.clear();		
+	//}
+	//threadEnterQueue.join();
 }
 
 bool Model1Holder::iniPara(MultiImageRead& mImgRead)
@@ -53,13 +457,53 @@ bool Model1Holder::iniPara(MultiImageRead& mImgRead)
 	return true;
 }
 
-void Model1Holder::model1Config(string iniPath)
+vector<cv::Rect> Model1Holder::iniRects(int sHeight, int sWidth, int height, int width, int overlap, bool flag_right, bool flag_down)
 {
-	model1Handle = new TrModel1(iniPath, "TrModel1");
-	model1Handle->createThreadPool();
-	model1Mpp = model1Handle->inputProp.mpp;
-	model1Height = model1Handle->inputProp.height;
-	model1Width = model1Handle->inputProp.width;
+	vector<cv::Rect> rects;
+	//进行参数检查
+	if (sHeight == 0 || sWidth == 0 || height == 0 || width == 0) {
+		cout << "iniRects: parameter should not be zero\n";
+		return rects;
+	}
+	if (sHeight > height || sWidth > width) {
+		cout << "iniRects: sHeight or sWidth > height or width\n";
+		return rects;
+	}
+	if (overlap >= sWidth || overlap >= height) {
+		cout << "overlap should < sWidth or sHeight\n";
+		return rects;
+	}
+	int x_num = (width - overlap) / (sWidth - overlap);
+	int y_num = (height - overlap) / (sHeight - overlap);
+	vector<int> xStart;
+	vector<int> yStart;
+	if ((x_num * (sWidth - overlap) + overlap) == width) {
+		flag_right = false;
+	}
+	if ((y_num * (sHeight - overlap) + overlap) == height) {
+		flag_down = false;
+	}
+	for (int i = 0; i < x_num; i++) {
+		xStart.emplace_back((sWidth - overlap) * i);
+	}
+	for (int i = 0; i < y_num; i++) {
+		yStart.emplace_back((sHeight - overlap) * i);
+	}
+	if (flag_right)
+		xStart.emplace_back(width - sWidth);
+	if (flag_down)
+		yStart.emplace_back(height - sHeight);
+	for (int i = 0; i < yStart.size(); i++) {
+		for (int j = 0; j < xStart.size(); j++) {
+			cv::Rect rect;
+			rect.x = xStart[j];
+			rect.y = yStart[i];
+			rect.width = sWidth;
+			rect.height = sHeight;
+			rects.emplace_back(rect);
+		}
+	}
+	return rects;
 }
 
 void Model1Holder::normalize(std::vector<cv::Mat>& imgs, tensorflow::Tensor& tensor)
@@ -208,7 +652,7 @@ void Model1Holder::threshold_segmentation(cv::Mat& img, cv::Mat& binImg, int lev
 	remove_small_objects(binImg, thre_vol / pow(slideRatio, level));
 }
 
-bool Model1Holder::initialize_binImg(MultiImageRead &mImgRead)
+bool Model1Holder::initialize_binImg(MultiImageRead& mImgRead)
 {
 	int heightL4 = 0;
 	int widthL4 = 0;
@@ -221,162 +665,6 @@ bool Model1Holder::initialize_binImg(MultiImageRead &mImgRead)
 	mImgRead.getTile(levelBin, 0, 0, widthL4, heightL4, imgL4);
 	threshold_segmentation(imgL4, binImg, levelBin, m_thre_col, m_thre_vol);
 	return true;
-}
-
-void Model1Holder::enterModel1Queue4(std::atomic<bool>& flag, MultiImageRead& mImgRead)
-{
-	flag = true;
-	vector<std::pair<cv::Rect, cv::Mat>> tempRectMats;
-	int cropSize = model1Height * float(model1Mpp / slideMpp);
-	cropSize = cropSize / std::pow(slideRatio, levelBin);
-	while (mImgRead.popQueue(tempRectMats)) {
-		vector<std::pair<cv::Rect, cv::Mat>> rectMats;
-		for (auto iter = tempRectMats.begin(); iter != tempRectMats.end(); iter++) {
-			//cv::imwrite("D:\\TEST_OUTPUT\\rnnPredict\\" + to_string(iter->first.x) + "_" + to_string(iter->first.y) + ".tif", iter->second);
-			bool flag_right = false;
-			bool flag_down = false;
-			if (iter->second.cols != block_width / std::pow(slideRatio, read_level))
-				flag_right = true;
-			if (iter->second.rows != block_height / std::pow(slideRatio, read_level))
-				flag_down = true;
-			int crop_width = int(model1Height * float(model1Mpp / slideMpp)) / std::pow(slideRatio, read_level);
-			int crop_height = int(model1Width * float(model1Mpp / slideMpp)) / std::pow(slideRatio, read_level);
-			int overlap = (int(model1Height * float(model1Mpp / slideMpp)) / 4) / std::pow(slideRatio, read_level);
-			vector<cv::Rect> rects = iniRects(
-				crop_width, crop_height,
-				iter->second.rows, iter->second.cols, overlap, flag_right, flag_down);
-
-			for (auto iter2 = rects.begin(); iter2 != rects.end(); iter2++) {
-				std::pair<cv::Rect, cv::Mat> rectMat;
-				cv::Rect rect;
-				rect.x = iter->first.x + iter2->x;
-				rect.y = iter->first.y + iter2->y;
-				//这里过滤掉在binImg中和为0的图像
-				int startX = rect.x / std::pow(slideRatio, levelBin - read_level);
-				int startY = rect.y / std::pow(slideRatio, levelBin - read_level);
-				cv::Rect rectCrop(startX, startY, cropSize, cropSize);
-				cv::Mat cropMat = binImg(rectCrop);
-				int cropSum = cv::sum(cropMat)[0];
-				if (cropSum <= m_crop_sum * 255)
-					continue;
-				rect.width = model1Width;
-				rect.height = model1Height;
-				rectMat.first = rect;
-				rectMat.second = iter->second(*iter2);
-				cv::resize(rectMat.second, rectMat.second, cv::Size(model1Height, model1Width));
-				rectMats.emplace_back(std::move(rectMat));
-			}
-		}
-		//将rectMats放到tensor的队列里面
-		//vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
-		//Mats2Tensors(rectMats, rectsTensors, model1_batchsize);
-		//std::unique_lock<std::mutex> m1Guard(queue_lock);
-		//for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
-		//	data_queue.emplace(std::move(*iter));
-		//}
-		std::unique_lock<std::mutex> m1Guard(queue_lock);
-		for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++)
-		{
-			data_queue2.emplace(std::move(*iter));
-		}
-		m1Guard.unlock();
-		queue_cv.notify_one();
-		tempRectMats.clear();
-	}
-	flag = false;
-}
-
-vector<cv::Rect> Model1Holder::iniRects(int sHeight, int sWidth, int height, int width, int overlap, bool flag_right, bool flag_down)
-{
-	vector<cv::Rect> rects;
-	//进行参数检查
-	if (sHeight == 0 || sWidth == 0 || height == 0 || width == 0) {
-		cout << "iniRects: parameter should not be zero\n";
-		return rects;
-	}
-	if (sHeight > height || sWidth > width) {
-		cout << "iniRects: sHeight or sWidth > height or width\n";
-		return rects;
-	}
-	if (overlap >= sWidth || overlap >= height) {
-		cout << "overlap should < sWidth or sHeight\n";
-		return rects;
-	}
-	int x_num = (width - overlap) / (sWidth - overlap);
-	int y_num = (height - overlap) / (sHeight - overlap);
-	vector<int> xStart;
-	vector<int> yStart;
-	if ((x_num * (sWidth - overlap) + overlap) == width) {
-		flag_right = false;
-	}
-	if ((y_num * (sHeight - overlap) + overlap) == height) {
-		flag_down = false;
-	}
-	for (int i = 0; i < x_num; i++) {
-		xStart.emplace_back((sWidth - overlap) * i);
-	}
-	for (int i = 0; i < y_num; i++) {
-		yStart.emplace_back((sHeight - overlap) * i);
-	}
-	if (flag_right)
-		xStart.emplace_back(width - sWidth);
-	if (flag_down)
-		yStart.emplace_back(height - sHeight);
-	for (int i = 0; i < yStart.size(); i++) {
-		for (int j = 0; j < xStart.size(); j++) {
-			cv::Rect rect;
-			rect.x = xStart[j];
-			rect.y = yStart[i];
-			rect.width = sWidth;
-			rect.height = sHeight;
-			rects.emplace_back(rect);
-		}
-	}
-	return rects;
-}
-
-bool Model1Holder::checkFlags() {
-	if (enterFlag3.load() || enterFlag4.load() || enterFlag5.load() || enterFlag6.load())
-		return true;
-	return false;
-}
-
-bool Model1Holder::popModel1Queue(vector<std::pair<cv::Rect, cv::Mat>> &rectMats/*vector<std::pair<vector<cv::Rect>, Tensor>>& rectsTensors*/)
-{
-	std::unique_lock < std::mutex > m1Guard(queue_lock);
-	if (data_queue2.size() > 0) {
-		int size = data_queue2.size();
-		for (int i = 0; i < size; i++) {
-			rectMats.emplace_back(std::move(data_queue2.front()));
-			data_queue2.pop();
-		}
-		return true;
-	}
-	else if (checkFlags()) {
-		queue_cv.wait_for(m1Guard, 3000ms, [this] {
-			if (data_queue2.size() > 0)
-				return true;
-			return false;
-			});
-		int size = data_queue2.size();
-		if (size == 0 && checkFlags()) {
-			m1Guard.unlock();
-			bool flag = popModel1Queue(rectMats);
-			return flag;
-		}
-		if (size == 0 && !checkFlags()) {
-			return false;
-		}
-		for (int i = 0; i < size; i++) {
-			rectMats.emplace_back(std::move(data_queue2.front()));
-			data_queue2.pop();
-		}
-		return true;
-	}
-	else
-	{
-		return false;
-	}
 }
 
 vector<cv::Rect> Model1Holder::get_rects_slide()
@@ -460,101 +748,4 @@ vector<cv::Rect> Model1Holder::get_rects_slide()
 		}
 	}
 	return rects;
-}
-
-vector<regionResult> Model1Holder::runModel1(MultiImageRead& mImgRead)
-{
-	//vector<cv::Rect> rects = iniRects(mImgRead);
-	//vector<cv::Rect> rects = iniRects(model1Height * float(model1Mpp / slideMpp), slideWidth, slideHeight, slideWidth);
-	//vector<cv::Rect> rects = iniRects(block_height, block_width, slideHeight, slideWidth, 560);
-	//vector<cv::Rect> rects = get_rects_slide();
-
-	iniPara(mImgRead);
-	initialize_binImg(mImgRead);
-	vector<regionResult> rResults;
-
-	mImgRead.setReadLevel(read_level);
-	vector<cv::Rect> rects = get_rects_slide();
-	mImgRead.setRects(rects);
-
-	//在这里开启4个线程
-	//int count = 0;
-	std::thread thread1(&Model1Holder::enterModel1Queue4, this, std::ref(enterFlag3), std::ref(mImgRead));
-	std::thread thread2(&Model1Holder::enterModel1Queue4, this, std::ref(enterFlag4), std::ref(mImgRead));
-	std::thread thread3(&Model1Holder::enterModel1Queue4, this, std::ref(enterFlag5), std::ref(mImgRead));
-	std::thread thread4(&Model1Holder::enterModel1Queue4, this, std::ref(enterFlag6), std::ref(mImgRead));
-	while (!checkFlags()) {
-		continue;
-	}
-	//std::vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
-	std::vector<std::pair<cv::Rect, cv::Mat>> rectMats;
-	while (popModel1Queue(rectMats))
-	{
-		//vector<Tensor> tensors;
-		//vector<cv::Rect> tmpRects;
-		//for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
-		//	tensors.emplace_back(std::move(iter->second));
-		//	tmpRects.insert(tmpRects.end(), iter->first.begin(), iter->first.end());
-		//}
-		vector<cv::Mat> input_imgs;
-		vector<cv::Rect> input_rects;
-		for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++)
-		{
-			input_rects.emplace_back(std::move(iter->first));
-			input_imgs.emplace_back(std::move(iter->second));
-		}
-		//vector<model1Result> results = model1Handle->model1Process(input_imgs);
-		model1Handle->processDataConcurrency(input_imgs);
-		vector<model1Result> results = model1Handle->m_results;
-		for (auto iter = results.begin(); iter != results.end(); iter++) {
-			int place = iter - results.begin();
-			regionResult rResult;
-			rResult.result = *iter;
-			rResult.point.x = input_rects[place].x * std::pow(slideRatio, read_level);//转为第0层级的图像
-			rResult.point.y = input_rects[place].y * std::pow(slideRatio, read_level);
-			rResults.emplace_back(rResult);
-		}
-		//count = count + rectsTensors.size();
-		rectMats.clear();
-	}
-	cout << endl;
-	thread1.join();
-	thread2.join();
-	thread3.join();
-	thread4.join();
-
-	return rResults;
-	//int count = 0;
-	//std::thread threadEnterQueue(&SlideProc::enterModel1Queue2, this, std::ref(mImgRead));
-	//while (enterFlag1 != true)
-	//{
-	//	continue;
-	//}
-	//cout << endl;
-	//while (/*mImgRead.popQueue(rectMats)*/popModel1Queue(rectMats))
-	//{
-	//	cout << count << " ";
-	//	vector<cv::Mat> imgs;
-	//	vector<cv::Rect> tmpRects;
-	//	int size = rectMats.size();
-	//	for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++)
-	//	{
-	//		imgs.emplace_back(std::move(iter->second));//用move语义将其放到新的里面
-	//		tmpRects.emplace_back(std::move(iter->first));
-	//	}
-	//	vector<model1Result> results = model1Handle->model1Process(imgs);
-	//	//将得到的结果和全局的坐标信息放到rResults里面
-	//	for (auto iter = results.begin(); iter != results.end(); iter++)
-	//	{
-	//		int place = iter - results.begin();
-	//		regionResult rResult;
-	//		rResult.result = *iter;
-	//		rResult.point.x = tmpRects[place].x;
-	//		rResult.point.y = tmpRects[place].y;
-	//		rResults.emplace_back(rResult);
-	//	}
-	//	count = count + rectMats.size();
-	//	rectMats.clear();		
-	//}
-	//threadEnterQueue.join();
 }

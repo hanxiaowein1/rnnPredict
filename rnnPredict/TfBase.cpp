@@ -78,6 +78,7 @@ void TfBase::convertMat2NeededDataInBatch(std::vector<cv::Mat>& imgs)
 	int size = imgs.size();
 	if (size == 0)
 		return;
+	resizeImages(imgs, inputProp.height, inputProp.width);
 	int height = imgs[0].rows;
 	int width = imgs[0].cols;
 	int channel = imgs[0].channels();

@@ -96,7 +96,6 @@ void ModelProp::processDataConcurrency(std::vector<cv::Mat>& imgs)
 {
 	if (imgs.size() == 0)
 		return;
-	resizeImages(imgs, inputProp.height, inputProp.width);
 	clearResult();
 	std::function<void(std::vector<cv::Mat>&)> mat2tensor_fun = std::bind(&ModelProp::convertMat2NeededDataInBatch, this, std::placeholders::_1);
 	auto task = std::make_shared<std::packaged_task<void()>>

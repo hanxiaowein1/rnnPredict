@@ -4,33 +4,6 @@
 
 void SlideProc::rnnConfig(string rnnParentPath)
 {
-	//vector<string> rnnPaths;
-	//getFiles(rnnParentPath, rnnPaths, "pb");
-	//if (rnnPaths.size() != 6) {
-	//	cout << "rnn model number should be 6\n";
-	//	return;
-	//}
-	//for (auto iter = rnnPaths.begin(); iter != rnnPaths.end(); iter++)
-	//{
-	//	int place = iter - rnnPaths.begin();
-	//	//读取模型
-	//	modelConfig conf;
-	//	conf.height = 256;//这些配置都无所谓了
-	//	conf.width = 256;
-	//	conf.channel = 3;
-	//	conf.opsInput = "feature_input:0";
-	//	conf.opsOutput.emplace_back("output/Sigmoid:0");
-	//	std::ifstream file(*iter, std::ios::binary | std::ios::ate);
-	//	std::streamsize size = file.tellg();
-	//	char* buffer = new char[size];
-	//	file.seekg(0, std::ios::beg);
-	//	if (!file.read(buffer, size)) {
-	//		cout << "read file to buffer failed" << endl;
-	//	}
-	//	rnn* rnnBase = new rnn(conf, buffer, size);
-	//	rnnHandle.emplace_back(rnnBase);
-	//	delete[]buffer;
-	//}
 	rnnHolder = new RnnHolder(rnnParentPath);
 }
 
@@ -73,6 +46,7 @@ void SlideProc::initialize_handler(const char* iniPath)
 
 	model1Config(string(model1Path));
 	m1Holder = new Model1Holder(modelConfigIni);
+	m1Holder->createThreadPool(2);
 	model2Config(string(model2Path));
 	m2Holder = new Model2Holder(modelConfigIni);
 	//model3Config(string(model3Path));
