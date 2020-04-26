@@ -49,10 +49,14 @@ void ModelProp::resizeImages(std::vector<cv::Mat>& imgs, int height, int width)
 		return;
 	if (imgs[0].rows != height)
 	{
-		for (auto& iter : imgs)
+		for (int i = 0; i < imgs.size(); i++)
 		{
-			cv::resize(iter, iter, cv::Size(height, width));
+			cv::resize(imgs[i], imgs[i], cv::Size(height, width));
 		}
+		//for (auto& iter : imgs)
+		//{
+		//	cv::resize(iter, iter, cv::Size(height, width));
+		//}
 	}
 }
 

@@ -183,10 +183,10 @@ void MultiImageRead::readTask(int i, cv::Rect &rect)
 	std::unique_lock<std::mutex> myGuard3(mutex_mat);
 	//checkPoint4++;
 	//如果pair队列长度大于200，那么就等一会在执行
-	if (m_rmQueue.size() >= maxQueueNum)
+	if (m_rmQueue.size() >= maxQueueNum.load())
 	{
 		cv_queue_overflow.wait(myGuard3, [this] {
-			if (m_rmQueue.size() < maxQueueNum || stopped.load()) {
+			if (m_rmQueue.size() < maxQueueNum.load() || stopped.load()) {
 				return true;
 			}
 			else {
@@ -216,26 +216,16 @@ void MultiImageRead::readTask(int i, cv::Rect &rect)
 
 bool MultiImageRead::popQueue(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
 {
-	//更改策略，每次pop出1/4*(maxQueueNum)的元素，以供外部线程平均处理，(如果队列里有数据，就全部pop出，反正也是std::move()，无需拷贝时间很快...)
+	//如果队列里有数据，就全部pop出，反正也是std::move()，无需拷贝时间很快
 	std::unique_lock<std::mutex> myGuard3(mutex_mat);
 	if (m_rmQueue.size() > 0)
 	{
 		int size = m_rmQueue.size();
-		int popNum = 0;
-		if (size > (maxQueueNum / 4))
-			popNum = maxQueueNum / 4;
-		else
-			popNum = size;
-		//auto start = std::chrono::system_clock::now();
-		for (int i = 0; i < popNum; i++)
+		for (int i = 0; i < size; i++)
 		{
 			rectMats.emplace_back(std::move(m_rmQueue.front()));
 			m_rmQueue.pop();
 		}
-		/*auto end = std::chrono::system_clock::now();
-		std::chrono::duration<double> diff = end - start;
-		std::cout << "pop "<<size<<" elements time is "
-			<< diff.count() << " s\n";*/
 		myGuard3.unlock();
 		cv_queue_overflow.notify_one();
 		return true;
