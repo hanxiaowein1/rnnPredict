@@ -52,6 +52,7 @@ void SlideProc::initialize_handler(const char* iniPath)
 	m2Holder->createThreadPool(2);
 	//model3Config(string(model3Path));
 	m3Holder = new Model3Holder(modelConfigIni);
+	m3Holder->createThreadPool(1);
 	rnnConfig(string(modelConfigIni));
 	//xgConfig(string(xgParentPath));
 }

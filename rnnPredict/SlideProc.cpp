@@ -313,45 +313,10 @@ float SlideProc::runRnn(vector<Anno>& annos, MultiImageRead& mImgRead)
 		rect.width = model2Width * float(model2Mpp / slideMpp);
 		rects.emplace_back(rect);
 	}
-	mImgRead.setRects(rects);
-	std::thread threadEnterQueue(&SlideProc::enterModel2Queue, this, std::ref(mImgRead));
-	while (enterFlag2 != true) {
-		continue;
-	}
-	//Sleep(3000);
-	vector<std::pair<cv::Rect, cv::Mat>> rectMats;
-	vector<std::pair<cv::Rect, cv::Mat>> tmpRectMats;
-	while (popModel2Queue(rectMats)/*mImgRead.popQueue(tmpRectMats)*/) {
-		for (auto iter = tmpRectMats.begin(); iter != tmpRectMats.end(); iter++) {
-			rectMats.emplace_back(std::move(*iter));
-		}
-		tmpRectMats.clear();
-	}
-	threadEnterQueue.join();
-	//一个重点的错误！！rnn进入的tensor应该是从大到小的
-	//无需flags，因为去重之后坐标不可能相同
-	vector<bool> flags(annos.size(), false);
-	vector<std::pair<cv::Rect, cv::Mat>> rectMats2(rectMats.size());
 	
-	for (int i = 0; i < rectMats.size(); i++)
-	{
-		for (int j = 0; j < annos.size(); j++)
-		{
-			if (rectMats[i].first.x == rects[j].x && rectMats[i].first.y == rects[j].y)
-			{
-				rectMats2[j] = std::move(rectMats[i]);
-				break;
-			}
-		}
-	}
-
-
 	//将10张图像放到model2中进行预测得到tensor
-	vector<tensorflow::Tensor> tensors;
 	vector<cv::Mat> imgs;
-	for (int i = 0; i < rectMats.size(); i++) {
-		imgs.emplace_back(std::move(rectMats2[i].second));
-	}
+	m2Holder->readImageInOrder(rects, mImgRead, imgs);
 	vector<model2Result> tempResults;
 	m2Holder->model2Process(imgs, tempResults);
 
@@ -441,133 +406,11 @@ void SlideProc::sortResultsByScore(vector<regionResult> &results)
 	std::sort(results.begin(), results.end(), lambda);
 }
 
-//
-//void SlideProc::enterModel2Queue2(std::atomic<bool>& flag, MultiImageRead& mImgRead)
-//{
-//	//接下来的步骤和model1的步骤相同
-//	flag = true;
-//	vector<std::pair<cv::Rect, cv::Mat>> rectMats;
-//	while (mImgRead.popQueue(rectMats)) {
-//		for (auto iter = rectMats.begin(); iter != rectMats.end(); iter++) {
-//			cv::resize(iter->second, iter->second, Size(model2Height, model2Width));
-//		}
-//		vector<std::pair<vector<cv::Rect>, Tensor>> rectsTensors;
-//		Mats2Tensors(rectMats, rectsTensors, model2_batchsize);
-//		std::unique_lock<std::mutex> m2Guard(tensor_queue_lock2);
-//		for (auto iter = rectsTensors.begin(); iter != rectsTensors.end(); iter++) {
-//			tensor_queue2.emplace(std::move(*iter));
-//		}
-//		m2Guard.unlock();
-//		tensor_queue_cv2.notify_one();
-//		rectMats.clear();
-//	}
-//	flag = false;
-//}
-
-void SlideProc::enterModel2Queue(MultiImageRead& mImgRead)
-{
-	enterFlag2 = true;
-	vector<std::pair<cv::Rect, cv::Mat>> tempRectMats;
-	while (mImgRead.popQueue(tempRectMats)) {
-		for (auto iter = tempRectMats.begin(); iter != tempRectMats.end(); iter++) {
-			if (iter->second.cols != model2Width) {
-				cv::resize(iter->second, iter->second, cv::Size(model2Width, model2Height));
-			}
-		}
-		std::unique_lock<std::mutex> m2Guard(queue2Lock);
-		for (auto iter = tempRectMats.begin(); iter != tempRectMats.end(); iter++) {
-			model2Queue.emplace(std::move(*iter));
-		}
-		m2Guard.unlock();
-		queue_cv2.notify_one();
-		tempRectMats.clear();
-	}
-	enterFlag2 = false;
-}
-
 bool SlideProc::checkFlags2()
 {
 	if (enterFlag7.load() || enterFlag8.load() || enterFlag9.load() || enterFlag10.load())
 		return true;
 	return false;
-}
-
-bool SlideProc::popModel2Queue(vector<std::pair<vector<cv::Rect>, tensorflow::Tensor>>& rectsTensors)
-{
-	std::unique_lock < std::mutex > m2Guard(tensor_queue_lock2);
-	if (tensor_queue2.size() > 0) {
-		int size = tensor_queue2.size();
-		for (int i = 0; i < size; i++) {
-			rectsTensors.emplace_back(std::move(tensor_queue2.front()));
-			tensor_queue2.pop();
-		}
-		return true;
-	}
-	else if (checkFlags2()) {
-		tensor_queue_cv2.wait_for(m2Guard, 3000ms, [this] {
-			if (tensor_queue2.size() > 0)
-				return true;
-			return false;
-			});
-		int size = tensor_queue2.size();
-		if (size == 0 && checkFlags2()) {
-			m2Guard.unlock();
-			bool flag = popModel2Queue(rectsTensors);
-			return flag;
-		}
-		if (size == 0 && !checkFlags2()) {
-			return false;
-		}
-		for (int i = 0; i < size; i++) {
-			rectsTensors.emplace_back(std::move(tensor_queue2.front()));
-			tensor_queue2.pop();
-		}
-		return true;
-	}
-	else {
-		return false;
-	}
-}
-
-bool SlideProc::popModel2Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
-{
-	//先加锁
-	std::unique_lock < std::mutex > m2Guard(queue2Lock);
-	if (model2Queue.size() > 0) {
-		int size = model2Queue.size();
-		for (int i = 0; i < size; i++) {
-			rectMats.emplace_back(std::move(model2Queue.front()));
-			model2Queue.pop();
-		}
-		return true;
-	}
-	else if (enterFlag2.load()) {
-		//如果这个enterQueue1线程没有退出，那么就开始进行wait操作
-		queue_cv2.wait_for(m2Guard, 3000ms, [this] {
-			if (model2Queue.size() > 0)
-				return true;
-			return false;
-			});
-		//取到锁之后，再次进行循环
-		int size = model2Queue.size();
-		if (size == 0 && enterFlag2.load()) {
-			m2Guard.unlock();
-			bool flag = popModel2Queue(rectMats);
-			return flag;
-		}
-		if (size == 0 && !enterFlag2.load()) {
-			return false;
-		}
-		for (int i = 0; i < size; i++) {
-			rectMats.emplace_back(std::move(model2Queue.front()));
-			model2Queue.pop();
-		}
-		return true;
-	}
-	else {
-		return false;
-	}
-
 }
 
 void SlideProc::saveResult3(string savePath, string saveName)
@@ -651,7 +494,7 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 	//初始化片子的信息
 	MultiImageRead mImgRead(slide);
 	mImgRead.createThreadPool();
-	mImgRead.setAddTaskThread();
+//	mImgRead.setAddTaskThread();
 	if (!mImgRead.status())
 		return false;
 	iniPara(slide, mImgRead);

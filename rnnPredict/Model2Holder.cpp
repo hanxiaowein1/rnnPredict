@@ -159,10 +159,8 @@ bool Model2Holder::popData(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
 					});
 				if (stopped.load())
 					return false;
-				//popQueueWithoutLock(rectMats);
 				data_lock.unlock();
 				return popData(rectMats);
-				//return true;
 			}
 		}
 	}
@@ -182,6 +180,57 @@ void Model2Holder::model2Process(std::vector<cv::Mat>& imgs, std::vector<model2R
 {
 	model2Handle->processDataConcurrency(imgs);
 	results = model2Handle->m_results;
+}
+
+void Model2Holder::readImageInOrder(std::vector<cv::Rect> rects, MultiImageRead& mImgRead, std::vector<cv::Mat>& imgs)
+{
+	startRead(rects, mImgRead);
+	vector<std::pair<cv::Rect, cv::Mat>> rectMats;
+	vector<std::pair<cv::Rect, cv::Mat>> tmpRectMats;
+	while (popData(tmpRectMats)) {
+		for (auto iter = tmpRectMats.begin(); iter != tmpRectMats.end(); iter++) {
+			rectMats.emplace_back(std::move(*iter));
+		}
+		tmpRectMats.clear();
+	}
+	//一个重点的错误！！rnn进入的tensor应该是从大到小的
+	//无需flags，因为去重之后坐标不可能相同
+	vector<bool> flags(rects.size(), false);
+	vector<std::pair<cv::Rect, cv::Mat>> rectMats2(rectMats.size());
+
+	for (int i = 0; i < rects.size(); i++)
+	{
+		for (int j = 0; j < rects.size(); j++)
+		{
+			if (rectMats[i].first.x == rects[j].x && rectMats[i].first.y == rects[j].y)
+			{
+				rectMats2[j] = std::move(rectMats[i]);
+				break;
+			}
+		}
+	}
+	for (int i = 0; i < rectMats.size(); i++) {
+		imgs.emplace_back(std::move(rectMats2[i].second));
+	}
+}
+
+void Model2Holder::startRead(std::vector<cv::Rect> rects, MultiImageRead& mImgRead)
+{
+	mImgRead.setRects(rects);
+
+	for (int i = 0; i < totalThrNum; i++)
+	{
+		auto task = std::make_shared<std::packaged_task<void()>>
+			(std::bind(&Model2Holder::pushData, this, std::ref(mImgRead)));
+		std::unique_lock<std::mutex> task_lock(task_mutex);
+		tasks.emplace(
+			[task]() {
+				(*task)();
+			}
+		);
+		task_lock.unlock();
+		task_cv.notify_one();
+	}
 }
 
 void Model2Holder::runModel2(MultiImageRead& mImgRead, std::vector<regionResult>& rResults)
@@ -270,23 +319,9 @@ void Model2Holder::runModel2(MultiImageRead& mImgRead, std::vector<regionResult>
 	}
 	//placeStop是以0为起点的，所以计数时，要将其加一
 	placeStop++;
-	mImgRead.setQueueMaxNum(rects.size());
 	mImgRead.setReadLevel(0);//永恒不变，model2一直都是从level0上进行读取
-	mImgRead.setRects(rects);
-
-	for (int i = 0; i < totalThrNum; i++)
-	{
-		auto task = std::make_shared<std::packaged_task<void()>>
-			(std::bind(&Model2Holder::pushData, this, std::ref(mImgRead)));
-		std::unique_lock<std::mutex> task_lock(task_mutex);
-		tasks.emplace(
-			[task]() {
-				(*task)();
-			}
-		);
-		task_lock.unlock();
-		task_cv.notify_one();
-	}
+	mImgRead.setQueueMaxNum(rects.size());
+	startRead(rects, mImgRead);
 
 	std::vector<std::pair<cv::Rect, cv::Mat>> rectMats;
 	std::vector<PointScore> model2PS;

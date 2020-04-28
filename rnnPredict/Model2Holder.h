@@ -14,15 +14,16 @@ public:
 	void runModel2(MultiImageRead& mImgRead, std::vector<regionResult>& rResults);
 	void model2Process(std::vector<cv::Mat>& imgs, std::vector<model2Result>& results);
 	void createThreadPool(int threadNum);
+	void readImageInOrder(std::vector<cv::Rect> rects, MultiImageRead& mImgRead, std::vector<cv::Mat>& imgs);
 private:
 	void popQueueWithoutLock(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
 	void pushData(MultiImageRead& mImgRead);
-	void enterModel2Queue(MultiImageRead& mImgRead);
 	bool popData(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
-	bool popModel2Queue2(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
 	void sortResultsByScore(std::vector<regionResult>& results);
 	void model2Config(std::string iniPath);
 	void initPara(MultiImageRead &mImgRead);
+	void startRead(std::vector<cv::Rect> rects, MultiImageRead& mImgRead);
+	
 private:
 	//TfModel2* model2Handle = nullptr;
 	TrModel2* model2Handle = nullptr;

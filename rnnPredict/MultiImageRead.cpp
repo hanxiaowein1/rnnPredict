@@ -22,18 +22,9 @@ MultiImageRead::MultiImageRead(const char* slidePath)
 MultiImageRead::~MultiImageRead()
 {
 	stopped.store(true);
-	cv_task.notify_all();
-	cv_rects.notify_all();
+	task_cv.notify_all();
 	cv_queue_has_elem.notify_all();
 	cv_queue_overflow.notify_all();
-	while (true)
-	{
-		//Sleep(3000);	
-		if (!addTaskFlag.load())
-			break;
-		cout << "卡在addTaskFlag不为false上了\n";
-		Sleep(500);
-	}
 	for (std::thread& thread : pool) {
 		if (thread.joinable())
 			thread.join();
@@ -51,7 +42,7 @@ void MultiImageRead::createThreadPool()
 		sReads.emplace_back(sFactory->createSlideProduct(m_slidePath.c_str()));
 	}
 	std::vector<std::mutex> list(sReads.size());
-	lock_sRead.swap(list);
+	sRead_mutex.swap(list);
 	int num = totalThrNum;
 
 	for (int size = 0; size < num; ++size)
@@ -63,8 +54,8 @@ void MultiImageRead::createThreadPool()
 				{
 					std::function<void()> task;
 					{   // 获取一个待执行的 task
-						std::unique_lock<std::mutex> lock{ this->m_lock };// unique_lock 相比 lock_guard 的好处是：可以随时 unlock() 和 lock()
-						this->cv_task.wait(lock,
+						std::unique_lock<std::mutex> task_lock{ this->task_mutex };// unique_lock 相比 lock_guard 的好处是：可以随时 unlock() 和 lock()
+						this->task_cv.wait(task_lock,
 							[this] {
 								return this->stopped.load() || !this->tasks.empty();
 							}
@@ -81,55 +72,6 @@ void MultiImageRead::createThreadPool()
 			}
 			);
 	}
-}
-
-//往里面添加task，为addTask单独设置线程
-void MultiImageRead::addTask()
-{
-	//循环0 - sReads的长度，往里面加入task
-	while (!stopped.load())
-	{
-		for (int i = 0; i < sReads.size(); i++)
-		{			
-			std::unique_lock<std::mutex> myGuard2(rectMutex);
-			if (m_rects.size() == 0)
-			{
-				cv_rects.wait(myGuard2, [this] {
-					if (m_rects.size() > 0 || stopped.load())
-						return true;
-					else
-						return false;
-					});
-			}
-			if (stopped.load())
-			{
-				addTaskFlag.store(false);
-				return;
-			}
-			cv::Rect rect = std::move(m_rects.front());
-			m_rects.pop();
-			myGuard2.unlock();
-			std::unique_lock<std::mutex> lock(m_lock);
-			//std::cout << "before enter task" << std::endl;
-			auto task = std::make_shared<std::packaged_task<void()>>(std::bind(&MultiImageRead::readTask, this, i, rect));
-			TaskCount++;
-			tasks.emplace(
-				[task]() {
-					(*task)();
-				}
-			);	
-			lock.unlock();
-			//std::cout << "after enter task" << endl;
-			cv_task.notify_one();
-		}
-	}
-	
-}
-
-void MultiImageRead::setAddTaskThread()
-{
-	std::thread tempThread(&MultiImageRead::addTask, this);
-	tempThread.detach();
 }
 
 void MultiImageRead::m_GammaCorrection(cv::Mat& src, cv::Mat& dst, float fGamma)
@@ -161,32 +103,27 @@ void MultiImageRead::m_GammaCorrection(cv::Mat& src, cv::Mat& dst, float fGamma)
 	}
 }
 
-
-void MultiImageRead::readTask(int i, cv::Rect &rect)
+void MultiImageRead::readTask(int i, cv::Rect rect)
 {	
-	//checkPoint1++;
 	//独占SlideRead
-	std::unique_lock<std::mutex> myGuard(lock_sRead[i]);
+	std::unique_lock<std::mutex> sRead_lock(sRead_mutex[i]);
 	std::unique_ptr<SlideRead>& uptr = sReads[i];
-	//checkPoint2++;
 	std::pair<cv::Rect, cv::Mat> rectMat;
 	uptr->getTile(read_level, rect.x, rect.y, rect.width, rect.height, rectMat.second);
 	//经检查，checkPoint2到checkPoint3之间有错误，存在几个函数没有执行完毕
-	//checkPoint3++;
-	rectMat.first = std::move(rect);
+	rectMat.first = rect;
 	//在这里对齐进行gamma变换
 	if (gamma_flag.load())
 	{
 		m_GammaCorrection(rectMat.second, rectMat.second, 0.6f);
 	}	
 	//为pair队列加锁
-	std::unique_lock<std::mutex> myGuard3(mutex_mat);
-	//checkPoint4++;
+	std::unique_lock<std::mutex> data_lock(data_mutex);
 	//如果pair队列长度大于200，那么就等一会在执行
-	if (m_rmQueue.size() >= maxQueueNum.load())
+	if (data_queue.size() >= maxQueueNum.load())
 	{
-		cv_queue_overflow.wait(myGuard3, [this] {
-			if (m_rmQueue.size() < maxQueueNum.load() || stopped.load()) {
+		cv_queue_overflow.wait(data_lock, [this] {
+			if (data_queue.size() < maxQueueNum.load() || stopped.load()) {
 				return true;
 			}
 			else {
@@ -195,54 +132,60 @@ void MultiImageRead::readTask(int i, cv::Rect &rect)
 		});
 		if (stopped.load())
 			return;
-		m_rmQueue.emplace(std::move(rectMat));
-		myGuard3.unlock();
+		data_queue.emplace(std::move(rectMat));
+		data_lock.unlock();
 		cv_queue_has_elem.notify_one();//已经有元素了，通知pop
 	}
 	else
 	{
-		//checkPoint5++;
-		m_rmQueue.emplace(std::move(rectMat));
-		myGuard3.unlock();
+		data_queue.emplace(std::move(rectMat));
+		data_lock.unlock();
 		cv_queue_has_elem.notify_one();//已经有元素了，通知pop
 	}
 	readTaskCount++;
-	if (readTaskCount.load() == totalTaskCount)
+	if (readTaskCount.load() == totalTaskCount.load())
 	{
 		time_t now = time(0);
 		cout << "read image to buffer complete: " << (char*)ctime(&now);
 	}
 }
 
+void MultiImageRead::popQueueWithoutLock(vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
+{
+	int size = data_queue.size();
+	for (int i = 0; i < size; i++)
+	{
+		rectMats.emplace_back(std::move(data_queue.front()));
+		data_queue.pop();
+	}
+}
+
 bool MultiImageRead::popQueue(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
 {
 	//如果队列里有数据，就全部pop出，反正也是std::move()，无需拷贝时间很快
-	std::unique_lock<std::mutex> myGuard3(mutex_mat);
-	if (m_rmQueue.size() > 0)
+	std::unique_lock<std::mutex> data_lock(data_mutex);
+	if (data_queue.size() > 0)
 	{
-		int size = m_rmQueue.size();
-		for (int i = 0; i < size; i++)
-		{
-			rectMats.emplace_back(std::move(m_rmQueue.front()));
-			m_rmQueue.pop();
-		}
-		myGuard3.unlock();
+		popQueueWithoutLock(rectMats);
+		data_lock.unlock();
 		cv_queue_overflow.notify_one();
 		return true;
 	}
 	else
 	{
 		//如果没有数据，就先释放锁
+		data_lock.unlock();
 		//在判断是否有tasks
-		std::unique_lock<std::mutex> lock{ this->m_lock };
+		std::unique_lock<std::mutex> task_lock{ task_mutex };
 		//当有task或者空闲的线程数量也不等于全部的线程数量(也就是说还有线程正在执行)
 		if (tasks.size() > 0)
 		{
 			//有tasks，释放锁
-			lock.unlock();
+			task_lock.unlock();
 			//等待有元素
-			cv_queue_has_elem.wait(myGuard3, [this] {
-				if (m_rmQueue.size() > 0 || stopped.load()) {
+			data_lock.lock();
+			cv_queue_has_elem.wait(data_lock, [this] {
+				if (data_queue.size() > 0 || stopped.load()) {
 					return true;
 				}
 				else {
@@ -252,80 +195,57 @@ bool MultiImageRead::popQueue(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMat
 			if (stopped.load())
 				return false;
 			//弹出m_rmQueue
-			rectMats.emplace_back(std::move(m_rmQueue.front()));
-			m_rmQueue.pop();
-			myGuard3.unlock();
-			cv_queue_overflow.notify_one();//已经pop出一个元素，通知进图
+			popQueueWithoutLock(rectMats);
+			data_lock.unlock();
+			cv_queue_overflow.notify_all();//已经pop元素，通知进图
 			return true;
 		}	
-		if (tasks.size() == 0 && idlThrNum != totalThrNum)
+		else
 		{
-			//证明有线程正在运行
-			lock.unlock();
-			cv_queue_has_elem.wait_for(myGuard3, 5000ms, [this] {
-				if (m_rmQueue.size() > 0 || stopped.load()) {
-					return true;
-				}
-				else {
-					return false;
-				}
-				});
-			if (stopped.load())
-				return false;
-			if (m_rmQueue.size() ==0 && (idlThrNum != totalThrNum))
+			task_lock.unlock();
+			//如果没有task，那么要检查是否有线程在运行
+			if (idlThrNum.load() == totalThrNum.load())
 			{
-				//线程等了5秒还在运行
-				myGuard3.unlock();
-				bool flag = popQueue(rectMats);
-				return flag;
-			}
-			if (m_rmQueue.size() == 0 && idlThrNum == totalThrNum)
-			{
-				return false;
-			}
-			//弹出m_rmQueue
-			rectMats.emplace_back(std::move(m_rmQueue.front()));
-			m_rmQueue.pop();
-			myGuard3.unlock();
-			cv_queue_overflow.notify_one();//已经pop出一个元素，通知进图
-			return true;
-		}
-		//然后判断m_rects是否有值(可能正处在addTask往tasks里加任务的时候)
-		if (m_rects.size() > 0 && addTaskFlag.load())
-		{
-			lock.unlock();
-			//再次等待添加queue的线程通知
-			cv_queue_has_elem.wait(myGuard3, [this] {
-				if (m_rmQueue.size() > 0 || stopped.load()) {
-					return true;
-				}
-				else {
+				//如果没有线程在运行，那么在看看队列是否有元素（万一在判断的时候进入了队列了呢？）
+				data_lock.lock();//其实不用加锁，因为没有线程在运行，肯定不会占用锁了
+				popQueueWithoutLock(rectMats);
+				data_lock.unlock();
+				cv_queue_overflow.notify_all();//已经pop元素，通知进图
+				if (rectMats.size() == 0)
 					return false;
-				}
-				});
-			if (stopped.load())
-				return false;
-			//弹出m_rmQueue
-			rectMats.emplace_back(std::move(m_rmQueue.front()));
-			m_rmQueue.pop();
-			myGuard3.unlock();
-			cv_queue_overflow.notify_one();
-			return true;
-
+				return true;
+			}
+			else
+			{
+				//如果有线程在运行，那么在锁住队列，等待人来唤醒
+				data_lock.lock();
+				cv_queue_has_elem.wait_for(data_lock, 1000ms, [this] {
+					if (data_queue.size() > 0 || stopped.load()) {
+						return true;
+					}
+					else {
+						return false;
+					}
+					});
+				if (stopped.load())
+					return false;
+				//popQueueWithoutLock(rectMats);
+				data_lock.unlock();
+				return popQueue(rectMats);
+			}
 		}
-		return false;
 	}
 }
 
 bool MultiImageRead::popQueue(std::pair<cv::Rect, cv::Mat>& rectMat)
 {
 	//首先判断队列里是否有数据
-	std::unique_lock<std::mutex> myGuard3(mutex_mat);
-	if (m_rmQueue.size() > 0)
+	std::unique_lock<std::mutex> data_lock(data_mutex);
+	if (data_queue.size() > 0)
 	{
-		rectMat = std::move(m_rmQueue.front());
-		m_rmQueue.pop();
-		myGuard3.unlock();
+		rectMat = std::move(data_queue.front());
+		data_queue.pop();
+		data_lock.unlock();
 		cv_queue_overflow.notify_one();
 		return true;
 	}
@@ -333,14 +253,14 @@ bool MultiImageRead::popQueue(std::pair<cv::Rect, cv::Mat>& rectMat)
 	{
 		//如果没有数据，先释放锁
 		//在判断是否有tasks
-		std::unique_lock<std::mutex> lock{ this->m_lock };
+		std::unique_lock<std::mutex> task_lock{ this->task_mutex };
 		if (tasks.size() > 0)
 		{
 			//有tasks，释放锁
-			lock.unlock();
+			task_lock.unlock();
 			//等待有元素
-			cv_queue_has_elem.wait(myGuard3, [this] {
-				if (m_rmQueue.size() > 0 || stopped.load()) {
+			cv_queue_has_elem.wait(data_lock, [this] {
+				if (data_queue.size() > 0 || stopped.load()) {
 					return true;
 				}
 				else {
@@ -350,18 +270,18 @@ bool MultiImageRead::popQueue(std::pair<cv::Rect, cv::Mat>& rectMat)
 			if (stopped.load())
 				return false;
 			//弹出m_rmQueue
-			rectMat = std::move(m_rmQueue.front());
-			m_rmQueue.pop();
-			myGuard3.unlock();
+			rectMat = std::move(data_queue.front());
+			data_queue.pop();
+			data_lock.unlock();
 			cv_queue_overflow.notify_one();//已经pop出一个元素，通知进图
 			return true;
 		}
 		if (tasks.size() == 0 && idlThrNum != totalThrNum)
 		{
 			//证明有线程正在运行
-			lock.unlock();
-			cv_queue_has_elem.wait(myGuard3, [this] {
-				if (m_rmQueue.size() > 0 || stopped.load()) {
+			task_lock.unlock();
+			cv_queue_has_elem.wait(data_lock, [this] {
+				if (data_queue.size() > 0 || stopped.load()) {
 					return true;
 				}
 				else {
@@ -370,66 +290,47 @@ bool MultiImageRead::popQueue(std::pair<cv::Rect, cv::Mat>& rectMat)
 				});
 			if (stopped.load())
 				return false;
-			if (m_rmQueue.size() == 0 && (idlThrNum != totalThrNum))
+			if (data_queue.size() == 0 && (idlThrNum != totalThrNum))
 			{
 				//线程等了5秒还在运行
-				myGuard3.unlock();
+				data_lock.unlock();
 				bool flag = popQueue(rectMat);
 				return flag;
 			}
-			if (m_rmQueue.size() == 0 && idlThrNum == totalThrNum)
+			if (data_queue.size() == 0 && idlThrNum == totalThrNum)
 			{
 				return false;
 			}
 			//弹出m_rmQueue
-			rectMat = std::move(m_rmQueue.front());
-			m_rmQueue.pop();
-			myGuard3.unlock();
+			rectMat = std::move(data_queue.front());
+			data_queue.pop();
+			data_lock.unlock();
 			cv_queue_overflow.notify_one();//已经pop出一个元素，通知进图
-			return true;
-		}
-		//然后判断m_rects是否有值(可能正处在addTask往tasks里加任务的时候)
-		if (m_rects.size() > 0 && addTaskFlag.load())
-		{
-			//如果没有tasks了，还是先释放tasks锁
-			lock.unlock();
-			//再次等待添加queue的线程通知
-			cv_queue_has_elem.wait(myGuard3, [this] {
-				if (m_rmQueue.size() > 0 || stopped.load()) {
-					return true;
-				}
-				else {
-					return false;
-				}
-				});
-			if (stopped.load())
-				return false;
-			//弹出m_rmQueue
-			rectMat = std::move(m_rmQueue.front());
-			m_rmQueue.pop();
-			myGuard3.unlock();
-			cv_queue_overflow.notify_one();
 			return true;
 		}
 		return false;	
 	}	
 }
 
-void MultiImageRead::setRects(std::vector<cv::Rect>& rects)
+void MultiImageRead::setRects(std::vector<cv::Rect> rects)
 {
+	//TaskCount = 0;
 	if (rects.size() == 0)
 		return;
-	std::unique_lock<std::mutex> myGuard2(rectMutex);
-	//先将老的缓存清理掉
-	//clear(m_rects);
 	for (int i = 0; i < rects.size(); i++)
 	{
-		m_rects.emplace(rects[i]);
+		cv::Rect rect = rects[i];
+		std::unique_lock<std::mutex> task_lock(task_mutex);
+		auto task = std::make_shared<std::packaged_task<void()>>(std::bind(&MultiImageRead::readTask, this, i % totalThrNum, rect));
+		totalTaskCount++;
+		tasks.emplace(
+			[task]() {
+				(*task)();
+			}
+		);
+		task_lock.unlock();
 	}
-	int size = rects.size();
-	totalTaskCount += size;
-	myGuard2.unlock();
-	cv_rects.notify_one();
+	task_cv.notify_all();
 }
 
 bool MultiImageRead::status()

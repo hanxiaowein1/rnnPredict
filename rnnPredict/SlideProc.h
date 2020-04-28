@@ -106,14 +106,11 @@ private:
 
 	//从mImgRead读取一个512块进行处理
 	void enterModel1Queue(MultiImageRead& mImgRead);
-	void enterModel2Queue(MultiImageRead& mImgRead);
 	//从mImgRead读取一个长条进行处理
 	void enterModel1Queue2(MultiImageRead& mImgRead);
 	bool popModel1Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);//从本队列中读图
 	bool popModel1Queue(vector<std::pair<vector<cv::Rect>, tensorflow::Tensor>>& rectsTensors);
 	bool checkFlags2();
-	bool popModel2Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
-	bool popModel2Queue(vector<std::pair<vector<cv::Rect>, tensorflow::Tensor>>& rectsTensors);
 	//初始化根据mpp和ration变化而导致各种变化的参数
 	bool iniPara(const char* slide, MultiImageRead& mImgRead);
 	//先在程序中尝试去掉m_srpRead，m_sdpcRead，m_osRead
