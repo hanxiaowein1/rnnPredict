@@ -11,15 +11,6 @@ SlideProc::SlideProc(const char* iniPath)
 
 SlideProc::~SlideProc()
 {
-	freeMemory();
-}
-
-void SlideProc::freeMemory()
-{
-	delete m1Holder;
-	delete m2Holder;
-	delete m3Holder;
-	delete rnnHolder;
 }
 
 bool SlideProc::iniPara2(const char* slide, MultiImageRead& mImgRead)
@@ -70,16 +61,16 @@ bool SlideProc::iniPara2(const char* slide, MultiImageRead& mImgRead)
 
 bool SlideProc::iniPara(const char* slide, MultiImageRead& mImgRead)
 {
-	if (m_srpRead != nullptr) {
-		delete m_srpRead;
-		m_srpRead = new SrpSlideRead(slide);
-	
-	}
-	else {
-		m_srpRead = new SrpSlideRead(slide);
-	}
-	if (!m_srpRead->status())
-		return false;
+	//if (m_srpRead != nullptr) {
+	//	delete m_srpRead;
+	//	m_srpRead = new SrpSlideRead(slide);
+	//
+	//}
+	//else {
+	//	m_srpRead = new SrpSlideRead(slide);
+	//}
+	//if (!m_srpRead->status())
+	//	return false;
 	//初始化切片的宽高、mpp、ratio
 	mImgRead.getSlideHeight(slideHeight);
 	mImgRead.getSlideWidth(slideWidth);
@@ -450,7 +441,7 @@ void SlideProc::saveResult2(string savePath, string saveName)
 	out.close();
 }
 
-void SlideProc::saveImages(vector<PointScore>& pss, int radius, string savePath)
+void SlideProc::saveImages(vector<PointScore>& pss, int radius, string savePath, MultiImageRead &mImgRead)
 {
 	//直接用m_srpRead来进行有序的读取(因为不是大量的数据，不需要开启多线程)
 	int i = 0;
@@ -467,7 +458,7 @@ void SlideProc::saveImages(vector<PointScore>& pss, int radius, string savePath)
 			point.y = 0;
 		else
 			point.y = elem.point.y - radius;
-		m_srpRead->getTile(0, point.x, point.y, radius * 2, radius * 2, img);
+		mImgRead.getTile(0, point.x, point.y, radius * 2, radius * 2, img);
 		string saveName = to_string(i) + "_" + to_string(elem.point.x) + "_" +
 			to_string(elem.point.y) + "_" + to_string(elem.score) + ".tif";
 		cv::imwrite(savePath + "\\" + saveName, img);
@@ -494,7 +485,6 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 	//初始化片子的信息
 	MultiImageRead mImgRead(slide);
 	mImgRead.createThreadPool();
-//	mImgRead.setAddTaskThread();
 	if (!mImgRead.status())
 		return false;
 	iniPara(slide, mImgRead);
@@ -551,16 +541,17 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 	annos.clear();
 	annos = regionProposal(10);
 	vector<PointScore> pss = anno2PS(annos);
-	saveImages(pss, 200, model2ResultPath);
+	int saveRadius = 500;
+	saveImages(pss, saveRadius, model2ResultPath, mImgRead);
 	annos.clear();
 	annos = regionProposal(50);
 	pss = anno2PS(annos);
-	saveImages(pss, 200, model3InputPath);//可能会越界
-	saveImages(m3Results, 200, model3ResultPath);//可能会越界
+	saveImages(pss, saveRadius, model3InputPath, mImgRead);//可能会越界
+	saveImages(m3Results, saveRadius, model3ResultPath, mImgRead);//可能会越界
 	mImgRead.~MultiImageRead();
 }
 
-//
+
 //bool SlideProc::runSlide2(const char* slide)
 //{
 //	levelBin = 4;
@@ -635,73 +626,59 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 //	sortResultsByCoor(rResults);
 //	return true;
 //}
-//
-//bool SlideProc::runSlide(const char* slide, vector<Anno>& annos)
-//{
-//	//levelBin = 4;
-//
-//	//初始化片子的信息
-//	MultiImageRead mImgRead(slide);
-//	mImgRead.createThreadPool();
-//	mImgRead.setAddTaskThread();
-//	if (!mImgRead.status())
-//		return false;
-//	iniPara(slide, mImgRead);
-//	bool flag = initialize_binImg();
-//	if (!flag)
-//		return false;
-//
-//	m_slide = string(slide);
-//	rResults.clear();
-//
-//	if (slideHeight == 0 || slideWidth == 0 || slideMpp == 0)
-//		return false;
-//
-//	time_t now = time(0);
-//	cout << "start model1 process: " << (char*)ctime(&now);
-//	runModel1(mImgRead);
-//	sortResultsByCoor(rResults);
-//	now = time(0);
-//	cout << "start model2 process: " << (char*)ctime(&now);
-//	runModel2(mImgRead);
-//	sortResultsByCoor(rResults);
-//	now = time(0);
-//	cout << "start regionProposal: " << (char*)ctime(&now);
-//	annos = regionProposal(recomNum);
-//
-//	now = time(0);
-//	cout << "start runRnn: " << (char*)ctime(&now);
-//	float rnnResult = runRnn(annos, mImgRead);
-//	//float xgResult = runXgboost();
-//	sortResultsByCoor(rResults);
-//
-//	slideScore = rnnResult;
-//
-//	mImgRead.~MultiImageRead();
-//
-//	//将信息写到srp里面
-//	annos.erase(annos.begin() + 10, annos.end());
-//	Anno* pann = new Anno[annos.size()];
-//	for (int i = 0; i < annos.size(); i++) {
-//		pann[i].id = i;
-//		pann[i].type = 0;
-//		pann[i].x = annos[i].x;
-//		pann[i].y = annos[i].y;
-//		pann[i].score = annos[i].score;
-//	}
-//	now = time(0);
-//	cout << "write anno to slide: " << (char*)ctime(&now);
-//	m_srpRead->callCleanAnno();
-//	m_srpRead->callWriteAnno(pann, annos.size());
-//	m_srpRead->callWriteParamDouble("score", slideScore);
-//
-//	mImgRead.~MultiImageRead();
-//	if (m_srpRead != nullptr)
-//	{
-//		delete m_srpRead;
-//		m_srpRead = nullptr;
-//	}
-//
-//
-//	return true;
-//}
+
+bool SlideProc::runSlide(const char* slide, vector<Anno>& annos)
+{
+	//levelBin = 4;
+
+	//初始化片子的信息
+	MultiImageRead mImgRead(slide);
+	mImgRead.createThreadPool();
+	if (!mImgRead.status())
+		return false;
+	iniPara(slide, mImgRead);
+
+	m_slide = string(slide);
+	rResults.clear();
+
+	if (slideHeight == 0 || slideWidth == 0 || slideMpp == 0)
+		return false;
+
+	time_t now = time(0);
+	cout << "start model1 process: " << (char*)ctime(&now);
+	//runModel1(mImgRead);
+	rResults = m1Holder->runModel1(mImgRead);
+
+	sortResultsByCoor(rResults);
+	now = time(0);
+	cout << "start model2 process: " << (char*)ctime(&now);
+	//runModel2(mImgRead);
+	m2Holder->runModel2(mImgRead, rResults);
+	sortResultsByCoor(rResults);
+
+	annos = regionProposal(30);
+	now = time(0);
+	cout << "start rnn process: " << (char*)ctime(&now);
+	slideScore = runRnn(annos, mImgRead);
+
+	mImgRead.~MultiImageRead();
+
+	//将信息写到srp里面
+	annos.erase(annos.begin() + 10, annos.end());
+	Anno* pann = new Anno[annos.size()];
+	for (int i = 0; i < annos.size(); i++) {
+		pann[i].id = i;
+		pann[i].type = 0;
+		pann[i].x = annos[i].x;
+		pann[i].y = annos[i].y;
+		pann[i].score = annos[i].score;
+	}
+	now = time(0);
+	cout << "write anno to slide: " << (char*)ctime(&now);
+	std::unique_ptr<SrpSlideRead> srp_read_handle = std::make_unique<SrpSlideRead>(slide);
+	srp_read_handle->callCleanAnno();
+	srp_read_handle->callWriteAnno(pann, annos.size());
+	srp_read_handle->callWriteParamDouble("score", slideScore);
+
+	return true;
+}

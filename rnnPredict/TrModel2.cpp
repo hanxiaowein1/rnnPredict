@@ -9,6 +9,15 @@ TrModel2::TrModel2(std::string iniPath, std::string group) : TrBase(iniPath, gro
 	TrBase::build(memory, inputProp.batchsize);
 }
 
+TrModel2::TrModel2(std::string group) : TrBase(group)
+{
+	inputProp.initByIniConfig("Model2");
+	//这个时候Model1已经构造完成，开始配置mParam
+	//paramConfig({ inputName }, outputNames, { channel, height, width }, batchsize);
+	unsigned long long memory = getMemory(group);
+	TrBase::build(memory, inputProp.batchsize);
+}
+
 void TrModel2::constructNetwork()
 {
 	mParser->registerInput(fileProp.inputName.c_str(),

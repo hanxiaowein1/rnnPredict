@@ -5,6 +5,11 @@ TfModel2::TfModel2(std::string iniPath, std::string group):TfBase(iniPath, group
 	inputProp.initByiniFile(iniPath, "Model2");
 }
 
+TfModel2::TfModel2(std::string group) : TfBase(group)
+{
+	inputProp.initByIniConfig("Model2");
+}
+
 void TfModel2::processInBatch(std::vector<cv::Mat> &imgs)
 {
 	vector<tensorflow::Tensor> tempTensors;

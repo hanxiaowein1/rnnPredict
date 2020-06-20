@@ -8,6 +8,11 @@ TfModel1::TfModel1(string iniPath, string group):
 	inputProp.initByiniFile(iniPath, "Model1");
 }
 
+TfModel1::TfModel1(string group) : TfBase(group)
+{
+	inputProp.initByIniConfig("Model1");
+}
+
 TfModel1::~TfModel1()
 {
 

@@ -12,9 +12,6 @@ RnnHolder::RnnHolder(string iniPath)
 
 RnnHolder::~RnnHolder()
 {
-	for (int i = 0; i < rnnHandle.size(); i++) {
-		delete rnnHandle[i];
-	}
 }
 
 void RnnHolder::rnnConfig(string iniPath)
@@ -22,10 +19,9 @@ void RnnHolder::rnnConfig(string iniPath)
 	vector<string> groups{"TfRnn1","TfRnn2", "TfRnn3", "TfRnn4", "TfRnn5", "TfRnn6"};
 	for (auto iter : groups)
 	{
-		TfRnn* rnn_obj = new TfRnn(iniPath, iter);
-		rnnHandle.emplace_back(rnn_obj);
+		//rnnHandle.emplace_back(std::make_unique<TfRnn>(iniPath, iter));
+		rnnHandle.emplace_back(std::make_unique<TfRnn>(iter));
 	}
-
 }
 
 float RnnHolder::runRnn(std::vector<model2Result>& results)

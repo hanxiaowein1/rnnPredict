@@ -23,6 +23,7 @@ public:
 public:
 	//从ini文件中初始化
 	void initByiniFile(std::string iniPath, std::string group);
+	void initByIniConfig(std::string group);
 };
 
 class ModelFileProp
@@ -33,6 +34,7 @@ public:
 	std::string filepath;
 public:
 	void initByiniFile(std::string iniPath, std::string group);
+	void initByIniConfig(std::string group);
 };
 
 class ModelProp

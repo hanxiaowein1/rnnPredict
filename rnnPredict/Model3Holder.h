@@ -23,7 +23,8 @@ private:
 	void model3Config(string iniPath);
 	void initPara(MultiImageRead& mImgRead);
 private:
-	TfModel3* model3Handle = nullptr;
+	//TfModel3* model3Handle = nullptr;
+	std::unique_ptr<TfModel3> model3Handle;
 	int model3Height;
 	int model3Width;
 	float model3Mpp;

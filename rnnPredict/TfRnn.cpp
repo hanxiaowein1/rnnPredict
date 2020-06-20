@@ -5,6 +5,11 @@ TfRnn::TfRnn(string iniPath, string group) :TfBase(iniPath, group)
 
 }
 
+TfRnn::TfRnn(std::string group) : TfBase(group)
+{
+
+}
+
 TfRnn::~TfRnn()
 {}
 

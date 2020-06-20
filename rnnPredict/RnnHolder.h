@@ -20,8 +20,8 @@ private:
 	float outputSix(vector<float>& rnnResults_f);
 private:
 	//vector<rnn*> rnnHandle;
-	vector<TfRnn*> rnnHandle;
-
+	//vector<TfRnn*> rnnHandle;
+	std::vector<std::unique_ptr<TfRnn>> rnnHandle;
 };
 
 #endif

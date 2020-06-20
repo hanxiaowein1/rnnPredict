@@ -10,8 +10,8 @@ OpenSlideRead::OpenSlideRead(const char *slidePath):SlideRead()
 {
 	iniHandle(slidePath);
 	ini_ration();
-	getSlideBoundX(boundX);
-	getSlideBoundY(boundY);
+	getSlideBoundX(m_boundX);
+	getSlideBoundY(m_boundY);
 }
 
 OpenSlideRead::~OpenSlideRead()
@@ -73,16 +73,20 @@ void OpenSlideRead::getSlideHeight(int & height)
 void OpenSlideRead::getSlideBoundX(int & boundX)
 {
 	boundX = get_os_property(osr, "openslide.bounds-x");
+	m_boundX = boundX;
 }
 
 void OpenSlideRead::getSlideBoundY(int & boundY)
 {
 	boundY = get_os_property(osr, "openslide.bounds-y");
+	m_boundY = boundY;
 }
 
 void OpenSlideRead::getSlideMpp(double & mpp)
 {
 	mpp = get_os_property_double(osr, "openslide.mpp-x");//看openslide的文档发现有mppx和mppy，这里拿mppx当做mpp
+	if (mpp == -1)
+		mpp = 0.293f;
 }
 
 void OpenSlideRead::getLevelDimensions(int level, int & width, int & height)
@@ -110,8 +114,8 @@ void OpenSlideRead::getTile(int level, int x, int y, int width, int height, cv::
 	//那么就需要转换坐标(先将x转为level0下的坐标)
 	x = x * std::pow(m_ratio, level);
 	y = y * std::pow(m_ratio, level);
-	x = x + boundX;
-	y = y + boundY;
+	x = x + m_boundX;
+	y = y + m_boundY;
 	openslide_read_region(osr, (uint32_t*)buffer, x, y, level, width, height);
 	cv::Mat image = cv::Mat(height, width, CV_8UC4, buffer, cv::Mat::AUTO_STEP).clone();
 	cvtColor(image, img, cv::COLOR_RGBA2RGB);//要转换一下通道

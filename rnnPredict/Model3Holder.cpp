@@ -17,7 +17,6 @@ Model3Holder::~Model3Holder()
 		if (thread.joinable())
 			thread.join();
 	}
-	delete model3Handle;
 }
 
 void Model3Holder::initPara(MultiImageRead& mImgRead)
@@ -29,7 +28,8 @@ void Model3Holder::initPara(MultiImageRead& mImgRead)
 
 void Model3Holder::model3Config(string iniPath)
 {
-	model3Handle = new TfModel3(iniPath, "TfModel3");
+	//model3Handle = std::make_unique<TfModel3>(iniPath, "TfModel3");
+	model3Handle = std::make_unique<TfModel3>("TfModel3");
 	model3Handle->createThreadPool();
 	model3Height = model3Handle->inputProp.height;
 	model3Width = model3Handle->inputProp.width;

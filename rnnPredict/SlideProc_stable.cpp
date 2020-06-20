@@ -1,60 +1,41 @@
 #include "SlideProc.h"
 #include "tinyxml.h"
 #include "tinystr.h"
-
-void SlideProc::rnnConfig(string rnnParentPath)
+#include "IniConfig.h"
+void SlideProc::model1Config()
 {
-	rnnHolder = new RnnHolder(rnnParentPath);
+	model1Mpp = IniConfig::instance().getIniDouble("Model1", "mpp");
+	model1Height = IniConfig::instance().getIniInt("Model1", "height");
+	model1Width = IniConfig::instance().getIniInt("Model1", "width");
+	//model1Mpp = 0.586f;
+	//model1Height = 512;
+	//model1Width = 512;
 }
 
-void SlideProc::model1Config(string model1Path)
+void SlideProc::model2Config()
 {
-	model1Mpp = 0.586f;
-	model1Height = 512;
-	model1Width = 512;
-}
-
-void SlideProc::model2Config(string model2Path)
-{
-	model2Mpp = 0.293f;
-	model2Height = 256;
-	model2Width = 256;
+	//model2Mpp = 0.293f;
+	//model2Height = 256;
+	//model2Width = 256;
+	model2Mpp = IniConfig::instance().getIniDouble("Model2", "mpp");
+	model2Height = IniConfig::instance().getIniInt("Model2", "height");
+	model2Width = IniConfig::instance().getIniInt("Model2", "width");
 }
 
 void SlideProc::initialize_handler(const char* iniPath)
 {
-	//读取ini文件中的相关信息
-	char model1Path[MAX_PATH];
-	char model2Path[MAX_PATH];
-	char model3Path[MAX_PATH];
-	char rnnParentPath[MAX_PATH];
-	//char xgParentPath[MAX_PATH];
-	char group[] = "Config";
-	char pbFile_n_1[] = "model1Path";
-	char pbFile_n_2[] = "model2Path";
-	char pbFile_n_3[] = "model3Path";
-	char pbFile_n_6[] = "rnnParentPath";
-	//char pbFile_n_7[] = "xgParentPath";
+	string modelConfigIni = string(iniPath);
 
-	GetPrivateProfileString(group, pbFile_n_1, "default", model1Path, MAX_PATH, iniPath);
-	GetPrivateProfileString(group, pbFile_n_2, "default", model2Path, MAX_PATH, iniPath);
-	GetPrivateProfileString(group, pbFile_n_3, "default", model3Path, MAX_PATH, iniPath);
-	GetPrivateProfileString(group, pbFile_n_6, "default", rnnParentPath, MAX_PATH, iniPath);
-	//GetPrivateProfileString(group, pbFile_n_7, "default", xgParentPath, MAX_PATH, iniPath);
-
-	string modelConfigIni = "../x64/Release/ModelConfig.ini";
-
-	model1Config(string(model1Path));
-	m1Holder = new Model1Holder(modelConfigIni);
-	m1Holder->createThreadPool(3);
-	model2Config(string(model2Path));
-	m2Holder = new Model2Holder(modelConfigIni);
+	model1Config();
+	m1Holder = std::make_unique<Model1Holder>(modelConfigIni);
+	//m1Holder->createThreadPool(3);
+	model2Config();
+	m2Holder = std::make_unique<Model2Holder>(modelConfigIni);
 	m2Holder->createThreadPool(2);
 	//model3Config(string(model3Path));
-	m3Holder = new Model3Holder(modelConfigIni);
+	m3Holder = std::make_unique<Model3Holder>(modelConfigIni);
 	m3Holder->createThreadPool(1);
-	rnnConfig(string(modelConfigIni));
-	//xgConfig(string(xgParentPath));
+	rnnHolder = std::make_unique<RnnHolder>(modelConfigIni);
 }
 
 void SlideProc::saveResult(string savePath, string filename)

@@ -18,7 +18,6 @@ Model2Holder::~Model2Holder()
 		if (thread.joinable())
 			thread.join();
 	}
-	delete model2Handle;
 }
 
 void Model2Holder::initPara(MultiImageRead& mImgRead)
@@ -34,7 +33,9 @@ void Model2Holder::initPara(MultiImageRead& mImgRead)
 
 void Model2Holder::model2Config(std::string iniPath)
 {
-	model2Handle = new TrModel2(iniPath, "TrModel2");
+	//model2Handle = std::make_unique<TrModel2>(iniPath, "TrModel2");
+	//model2Handle = std::make_unique<TfModel2>(iniPath, "TfModel2");
+	model2Handle = std::make_unique<TfModel2>("TfModel2");
 	model2Handle->createThreadPool();
 	model2Mpp = model2Handle->inputProp.mpp;
 	model2Height = model2Handle->inputProp.height;

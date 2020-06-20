@@ -1,8 +1,13 @@
 #include "TrBase.h"
-
+#include "IniConfig.h"
 TrBase::TrBase(std::string iniPath, std::string group)
 {
 	fileProp.initByiniFile(iniPath, group);
+}
+
+TrBase::TrBase(std::string group)
+{
+	fileProp.initByIniConfig(group);
 }
 
 bool TrBase::transformInMemory(vector<cv::Mat>& imgs, float* dstPtr)
@@ -97,6 +102,12 @@ bool TrBase::build(unsigned long long memory, int batchsize)
 unsigned long long TrBase::getMemory(std::string iniPath, std::string group)
 {
 	return GetPrivateProfileInt(group.c_str(), "memory", 3, iniPath.c_str());
+}
+
+unsigned long long TrBase::getMemory(std::string group)
+{
+	//return GetPrivateProfileInt(group.c_str(), "memory", 3, iniPath.c_str());
+	return IniConfig::instance().getIniInt(group, "memory");
 }
 
 bool TrBase::checkQueueEmpty()

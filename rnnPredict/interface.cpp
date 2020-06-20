@@ -1,5 +1,6 @@
 #include "interface.h"
 #include "DLLManager.h"
+#include "IniConfig.h"
 
 
 handle initialize_handle(const char* iniPath)
@@ -12,29 +13,29 @@ handle initialize_handle(const char* iniPath)
 	return (handle)myHandle;
 }
 
-//bool slideProcess(handle myHandle, const char* slidePath, Anno* annos, int* len, double* wholeScore)
-//{
-//	std::pair<SlideProc*, DLLManager*>* myHandle2 = (std::pair<SlideProc*, DLLManager*>*)myHandle;
-//	vector<Anno> annos_v;
-//	bool flag = myHandle2->first->runSlide(slidePath, annos_v);
-//	if (*len != 10)
-//	{
-//		cout << "lens should be 10\n";
-//		return false;
-//	}
-//	int minValue = std::min(*len, (int)annos_v.size());
-//	*len = minValue;
-//	for (int i = 0; i < minValue; i++)
-//	{
-//		annos[i].id = i;
-//		annos[i].type = 0;
-//		annos[i].x = annos_v[i].x;
-//		annos[i].y = annos_v[i].y;
-//		annos[i].score = annos_v[i].score;
-//	}
-//	*wholeScore = myHandle2->first->getSlideScore();
-//	return true;
-//}
+bool slideProcess(handle myHandle, const char* slidePath, Anno* annos, int* len, double* wholeScore)
+{
+	std::pair<SlideProc*, DLLManager*>* myHandle2 = (std::pair<SlideProc*, DLLManager*>*)myHandle;
+	vector<Anno> annos_v;
+	bool flag = myHandle2->first->runSlide(slidePath, annos_v);
+	if (*len != 10)
+	{
+		cout << "lens should be 10\n";
+		return false;
+	}
+	int minValue = std::min(*len, (int)annos_v.size());
+	*len = minValue;
+	for (int i = 0; i < minValue; i++)
+	{
+		annos[i].id = i;
+		annos[i].type = 0;
+		annos[i].x = annos_v[i].x;
+		annos[i].y = annos_v[i].y;
+		annos[i].score = annos_v[i].score;
+	}
+	*wholeScore = myHandle2->first->getSlideScore();
+	return true;
+}
 
 //bool slideProcess(handle myHandle, const char* slidePath, double* wholeScore)
 //{
@@ -51,13 +52,12 @@ void freeModelMem(handle myHandle)
 	delete myHandle2->second;
 }
 
-
-
 //int main()
 //{
 //	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
-//	string slidePath = "D:\\TEST_DATA\\rnnPredict\\052910027.srp";
+//	string slidePath = "D:\\TEST_DATA\\rnnPredict\\052800092.srp";
 //	string iniPath = "../x64/Release/config.ini";
+//	setIniPath(iniPath);
 //	handle myHandle = initialize_handle(iniPath.c_str());
 //	double wholeScore;
 //	int len = 10;

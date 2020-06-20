@@ -14,12 +14,13 @@ Model1Holder::~Model1Holder()
 		if (thread.joinable())
 			thread.join();
 	}
-	delete model1Handle;
 }
 
 void Model1Holder::model1Config(string iniPath)
 {
-	model1Handle = new TrModel1(iniPath, "TrModel1");
+	//model1Handle = std::make_unique<TrModel1>(iniPath, "TrModel1");
+	//model1Handle = std::make_unique<TfModel1>(iniPath, "TfModel1");
+	model1Handle = std::make_unique<TfModel1>("TfModel1");
 	model1Handle->createThreadPool();
 	model1Mpp = model1Handle->inputProp.mpp;
 	model1Height = model1Handle->inputProp.height;
@@ -90,6 +91,15 @@ void Model1Holder::pushData(MultiImageRead& mImgRead)
 				int startX = rect.x / std::pow(slideRatio, levelBin - read_level);
 				int startY = rect.y / std::pow(slideRatio, levelBin - read_level);
 				cv::Rect rectCrop(startX, startY, cropSize, cropSize);
+				if (startX + cropSize > binImg.cols || startY + cropSize > binImg.rows)
+				{
+					rect.width = model1Width;
+					rect.height = model1Height;
+					rectMat.first = rect;
+					rectMat.second = iter->second(*iter2);
+					rectMats.emplace_back(std::move(rectMat));
+					continue;
+				}
 				cv::Mat cropMat = binImg(rectCrop);
 				int cropSum = cv::sum(cropMat)[0];
 				if (cropSum <= m_crop_sum * 255)
@@ -194,6 +204,8 @@ bool Model1Holder::popData(vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
 
 vector<regionResult> Model1Holder::runModel1(MultiImageRead& mImgRead)
 {
+	std::call_once(create_thread_flag, &Model1Holder::createThreadPool, this, 3);
+
 	iniPara(mImgRead);
 	initialize_binImg(mImgRead);
 	vector<regionResult> rResults;

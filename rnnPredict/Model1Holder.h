@@ -32,8 +32,8 @@ private:
 	void threshold_segmentation(cv::Mat& img, cv::Mat& binImg, int level, int thre_col, int thre_vol);
 	void remove_small_objects(cv::Mat& binImg, int thre_vol);
 private:
-	//TfModel1* model1Handle = nullptr;
-	TrModel1* model1Handle = nullptr;
+	//std::unique_ptr<TrModel1> model1Handle;
+	std::unique_ptr<TfModel1> model1Handle;
 	int model1Height;
 	int model1Width;
 	float model1Mpp;
@@ -69,6 +69,7 @@ private:
 	std::atomic<int> idlThrNum = 1;//闲置线程数量
 	std::atomic<int> totalThrNum = 1;//总共线程数量
 
+	std::once_flag create_thread_flag;
 };
 
 #endif

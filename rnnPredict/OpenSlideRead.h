@@ -7,8 +7,8 @@ class OpenSlideRead : public SlideRead
 {
 private:
 	openslide_t* osr = nullptr;
-	int boundX = 0;
-	int boundY = 0;
+	int m_boundX = 0;
+	int m_boundY = 0;
 	//std::unique_ptr<uint8_t[]> uBuffer(new uint8_t[width * height * 4]);
 	//uint8_t* buffer = nullptr;
 public:

@@ -1,4 +1,5 @@
 #pragma once
+
 #ifndef _MULIMAGEREAD_H_
 #define _MULIMAGEREAD_H_
 
@@ -49,9 +50,11 @@ private:
 	//gamma标志，true表示要做gamma变换，false表示不用做gamma变换
 	std::atomic<bool> gamma_flag = true;
 
+
 public:
 	MultiImageRead(const char* slidePath);
 	~MultiImageRead();
+	std::unique_ptr<SlideRead> getSingleReadHandleAndReleaseOthers();
 	void popQueueWithoutLock(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
 	void createThreadPool();
 	//i表示取哪一个SlideRead
@@ -91,5 +94,6 @@ public:
 	int get_ratio();
 	bool status();
 };
+
 
 #endif

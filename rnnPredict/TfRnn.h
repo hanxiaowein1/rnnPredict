@@ -7,6 +7,7 @@ class TfRnn : public TfBase
 {
 public:
 	TfRnn(string iniPath, string group);
+	TfRnn(std::string group);
 	~TfRnn();
 	//输入为model2的输出
 	vector<float> rnnProcess(vector<vector<float>>& input);

@@ -6,6 +6,12 @@ TfBase::TfBase(std::string iniPath, std::string group)
 	construct();
 }
 
+TfBase::TfBase(std::string group)
+{
+	fileProp.initByIniConfig(group);
+	construct();
+}
+
 void TfBase::construct()
 {
 	tensorflow::GraphDef graph_def;

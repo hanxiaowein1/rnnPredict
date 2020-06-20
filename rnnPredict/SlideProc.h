@@ -19,18 +19,16 @@
 class SlideProc
 {
 private:
-	Model1Holder *m1Holder = nullptr;
-	Model2Holder* m2Holder = nullptr;
-	Model3Holder* m3Holder = nullptr;
-	RnnHolder* rnnHolder = nullptr;
-
-	//vector<rnn*> rnnHandle;
+	std::unique_ptr<Model1Holder> m1Holder;
+	std::unique_ptr<Model2Holder> m2Holder;
+	std::unique_ptr<Model3Holder> m3Holder;
+	std::unique_ptr<RnnHolder> rnnHolder;
 	vector<regionResult> rResults;
 	int recomNum = 30;
 	string m_slide;
-	SrpSlideRead* m_srpRead = nullptr;
-	SdpcSlideRead* m_sdpcRead = nullptr;
-	OpenSlideRead* m_osRead = nullptr;
+	//SrpSlideRead* m_srpRead = nullptr;
+	//SdpcSlideRead* m_sdpcRead = nullptr;
+	//OpenSlideRead* m_osRead = nullptr;
 	//片子的信息(每次去获得十分麻烦，不如先直接初始化，以后好调用)
 	int slideHeight;
 	int slideWidth;
@@ -79,10 +77,8 @@ private:
 private:
 	//初始化模型
 	void initialize_handler(const char* iniPath);
-	void model1Config(string model1Path);
-	void model2Config(string model2Path);
-	void rnnConfig(string rnnParentPath);
-	void freeMemory();
+	void model1Config();
+	void model2Config();
 	//用来初始化model1在全图中的框框
 	vector<cv::Rect> iniRects(MultiImageRead& mImgRead);
 	//根据给的坐标，来进行计算要怎么进行裁取(最后一块冗余和前片块冗余不同，但是块裁取的大小相同)
@@ -120,7 +116,7 @@ private:
 	cv::Point rect2Point(int x, int y, float radius);
 	//对两个Ps集合去重
 	void removeDuplicatePS(vector<PointScore>& pss1, vector<PointScore>& pss2, int threshold);
-	void saveImages(vector<PointScore>& pss, int radius, string savePath);
+	void saveImages(vector<PointScore>& pss, int radius, string savePath, MultiImageRead &mImgRead);
 	vector<PointScore> anno2PS(vector<Anno>& annos);
 public:
 	//根据ini文件初始化模型
@@ -128,7 +124,7 @@ public:
 	//释放掉模型
 	~SlideProc();
 	//华乐要求将annos给传出去，而不是我这边写到srp里面
-	//bool runSlide(const char* slide, vector<Anno>& annos);
+	bool runSlide(const char* slide, vector<Anno>& annos);
 	//给lab使用
 	//bool runSlide2(const char* slide);
 	//新加入model3

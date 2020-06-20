@@ -1,4 +1,5 @@
 #include "ModelProp.h"
+#include "IniConfig.h"
 
 void ModelInputProp::initByiniFile(std::string iniPath, std::string group)
 {
@@ -11,6 +12,15 @@ void ModelInputProp::initByiniFile(std::string iniPath, std::string group)
 	GetPrivateProfileString(group.c_str(), "mpp", "default", mpp_v, MAX_PATH, iniPath.c_str());
 
 	mpp = std::stod(std::string(mpp_v));
+}
+
+void ModelInputProp::initByIniConfig(std::string group)
+{
+	height = IniConfig::instance().getIniInt(group, "height");
+	width = IniConfig::instance().getIniInt(group, "width");
+	channel = IniConfig::instance().getIniInt(group, "channel");
+	batchsize = IniConfig::instance().getIniInt(group, "batchsize");
+	mpp = IniConfig::instance().getIniDouble(group, "mpp");
 }
 
 extern std::vector<std::string> split(std::string& s, char delimiter);
@@ -29,6 +39,14 @@ void ModelFileProp::initByiniFile(std::string iniPath, std::string group)
 	filepath = std::string(path_v);
 	std::string compositeOutName = std::string(outputNames_v);
 
+	outputNames = split(compositeOutName, ',');
+}
+
+void ModelFileProp::initByIniConfig(std::string group)
+{
+	inputName = IniConfig::instance().getIniString(group, "input");
+	filepath = IniConfig::instance().getIniString(group, "path");
+	std::string compositeOutName = IniConfig::instance().getIniString(group, "output");
 	outputNames = split(compositeOutName, ',');
 }
 

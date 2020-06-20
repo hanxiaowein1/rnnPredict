@@ -16,6 +16,7 @@ void clear(std::queue<std::pair<cv::Rect, cv::Mat>>& q)
 MultiImageRead::MultiImageRead(const char* slidePath)
 {
 	m_slidePath = string(slidePath);
+
 	stopped.store(false);
 }
 
@@ -410,7 +411,18 @@ int MultiImageRead::get_ratio()
 	return -1;
 }
 
-
+std::unique_ptr<SlideRead> MultiImageRead::getSingleReadHandleAndReleaseOthers()
+{
+	if (sReads.size() > 0)
+	{
+		for (int i = 1; i < sReads.size(); i++)
+		{
+			sReads[i].reset(nullptr);
+		}
+	}
+	std::unique_ptr<SlideRead> ret_ptr = std::move(sReads[0]);
+	return ret_ptr;
+}
 
 
 

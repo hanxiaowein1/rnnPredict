@@ -8,6 +8,7 @@ public:
 	std::vector<model2Result> m_results;
 public:
 	TrModel2(std::string iniPath, std::string group);
+	TrModel2(std::string group);
 	virtual std::string getGroup() { return "TrModel2"; }
 	virtual void processFirstDataInQueue();
 	virtual void clearResult() {

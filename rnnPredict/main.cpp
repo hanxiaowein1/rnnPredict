@@ -4,6 +4,7 @@
 #include "commonFunction.h"
 #include "SlideProc.h"
 #include "DLLManager.h"
+#include "IniConfig.h"
 
 void concatTest()
 {
@@ -380,24 +381,26 @@ void startRun(const char* iniPath)
 {
 	DLLManager manager;
 	SlideProc slideProc(iniPath);
-	char slidePath[MAX_PATH];
-	char savePath[MAX_PATH];
-	char slidePath_n[] = "slidePath";
-	char savePath_n[] = "savePath";
-	char group[] = "Config";
-	GetPrivateProfileString(group, slidePath_n, "default", slidePath, MAX_PATH, iniPath);
-	GetPrivateProfileString(group, savePath_n, "default", savePath, MAX_PATH, iniPath);
-	createDirRecursive(string(savePath));
+	//char slidePath[MAX_PATH];
+	//char savePath[MAX_PATH];
+	//char slidePath_n[] = "slidePath";
+	//char savePath_n[] = "savePath";
+	//char group[] = "Path";
+	//GetPrivateProfileString(group, slidePath_n, "default", slidePath, MAX_PATH, iniPath);
+	//GetPrivateProfileString(group, savePath_n, "default", savePath, MAX_PATH, iniPath);
+	std::string slidePath = IniConfig::instance().getIniString("Path", "slidePath");
+	std::string savePath = IniConfig::instance().getIniString("Path", "savePath");
+	createDirRecursive(savePath);
 	vector<string> sdpcList;
 	vector<string> srpList;
 	vector<string> mrxsList;
 	vector<string> svsList;
-	getFiles(string(slidePath), sdpcList, "sdpc");
-	getFiles(string(slidePath), srpList, "srp");
-	getFiles(string(slidePath), svsList, "svs");
-	getFiles(string(slidePath), mrxsList, "mrxs");
+	getFiles(slidePath, sdpcList, "sdpc");
+	getFiles(slidePath, srpList, "srp");
+	getFiles(slidePath, svsList, "svs");
+	getFiles(slidePath, mrxsList, "mrxs");
 	vector<string> xmlList;
-	getFiles(string(savePath), xmlList, "xml");
+	getFiles(savePath, xmlList, "xml");
 	filterList(sdpcList, xmlList);
 	filterList(srpList, xmlList);
 	filterList(svsList, xmlList);
@@ -423,6 +426,7 @@ int main(int args, char* argv[])
 	{
 		_putenv_s("CUDA_VISIBLE_DEVICES", "0");
 		string iniPath = "../x64/Release/config.ini";
+		setIniPath(iniPath);
 		DWORD dirType = GetFileAttributesA(iniPath.c_str());
 		if (dirType == INVALID_FILE_ATTRIBUTES) {
 			cout << "ini file doesn't exist!" << endl;
@@ -439,6 +443,7 @@ int main(int args, char* argv[])
 			cout << "ini file doesn't exist!" << endl;
 			return -1;
 		}
+		setIniPath(argv[1]);
 		startRun(argv[1]);
 		return 0;
 	}

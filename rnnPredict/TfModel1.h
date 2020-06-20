@@ -23,6 +23,7 @@ private:
 
 public:
 	TfModel1(std::string iniPath, std::string group);
+	TfModel1(std::string group);
 	~TfModel1();
 	virtual void processInBatch(std::vector<cv::Mat>& imgs);
 	virtual std::string getGroup() { return "TfModel1"; }

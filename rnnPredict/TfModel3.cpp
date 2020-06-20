@@ -5,6 +5,11 @@ TfModel3::TfModel3(std::string iniPath, std::string group) :TfBase(iniPath, grou
 	inputProp.initByiniFile(iniPath, "Model3");
 }
 
+TfModel3::TfModel3(std::string group) : TfBase(group)
+{
+	inputProp.initByIniConfig("Model3");
+}
+
 void TfModel3::processInBatch(std::vector<cv::Mat>& imgs)
 {
 	vector<tensorflow::Tensor> tempTensors;

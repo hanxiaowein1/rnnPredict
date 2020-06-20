@@ -29,6 +29,7 @@ public:
 	myUniquePtr<nvinfer1::IExecutionContext> mContext{ nullptr };
 public:
 	TrBase(std::string iniPath, std::string group);
+	TrBase(std::string group);
 	virtual ~TrBase() {};
 	virtual bool build(unsigned long long memory, int batchsize);
 	virtual bool infer(vector<cv::Mat>& imgs);
@@ -36,6 +37,7 @@ public:
 	virtual bool processInput(vector<cv::Mat>& imgs);
 	bool transformInMemory(vector<cv::Mat>& imgs, float* dstPtr);
 	virtual unsigned long long getMemory(std::string iniPath, std::string group);
+	virtual unsigned long long getMemory(std::string group);
 
 	virtual bool checkQueueEmpty();
 	virtual void convertMat2NeededDataInBatch(std::vector<cv::Mat>& imgs);

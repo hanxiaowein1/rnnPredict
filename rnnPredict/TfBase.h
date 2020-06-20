@@ -43,6 +43,7 @@ public:
 public:
 	//构造函数
 	TfBase(std::string iniPath, std::string group);
+	TfBase(std::string group);
 	void construct();
 public:
 	//普通函数
