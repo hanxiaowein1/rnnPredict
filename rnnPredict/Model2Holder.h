@@ -26,7 +26,9 @@ private:
 	
 private:
 	//std::unique_ptr<TrModel2> model2Handle;
-	std::unique_ptr<TfModel2> model2Handle;
+	//std::unique_ptr<TfModel2> model2Handle;
+	std::pair<std::unique_ptr<TfModel2>, std::unique_ptr<TrModel2>> model2Handle;
+	bool use_tr = false;
 	int model1Height;
 	int model1Width;
 	float model1Mpp;

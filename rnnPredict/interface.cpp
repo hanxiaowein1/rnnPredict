@@ -5,6 +5,7 @@
 
 handle initialize_handle(const char* iniPath)
 {
+	setIniPath(iniPath);
 	SlideProc* slideProc = new SlideProc(iniPath);
 	DLLManager* manager = new DLLManager();
 	auto myHandle = new std::pair<SlideProc*, DLLManager*>[1];
@@ -17,15 +18,8 @@ bool slideProcess(handle myHandle, const char* slidePath, Anno* annos, int* len,
 {
 	std::pair<SlideProc*, DLLManager*>* myHandle2 = (std::pair<SlideProc*, DLLManager*>*)myHandle;
 	vector<Anno> annos_v;
-	bool flag = myHandle2->first->runSlide(slidePath, annos_v);
-	if (*len != 10)
-	{
-		cout << "lens should be 10\n";
-		return false;
-	}
-	int minValue = std::min(*len, (int)annos_v.size());
-	*len = minValue;
-	for (int i = 0; i < minValue; i++)
+	bool flag = myHandle2->first->runSlide(slidePath, annos_v, *len);
+	for (int i = 0; i < *len; i++)
 	{
 		annos[i].id = i;
 		annos[i].type = 0;
@@ -56,11 +50,10 @@ void freeModelMem(handle myHandle)
 //{
 //	_putenv_s("CUDA_VISIBLE_DEVICES", "0");
 //	string slidePath = "D:\\TEST_DATA\\rnnPredict\\052800092.srp";
-//	string iniPath = "../x64/Release/config.ini";
-//	setIniPath(iniPath);
+//	string iniPath = "./config.ini";
 //	handle myHandle = initialize_handle(iniPath.c_str());
 //	double wholeScore;
-//	int len = 10;
+//	int len = 300;
 //	Anno* annos = new Anno[len];
 //	slideProcess(myHandle, slidePath.c_str(), annos, &len, &wholeScore);
 //	freeModelMem(myHandle);

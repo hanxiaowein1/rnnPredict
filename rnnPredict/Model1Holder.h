@@ -10,6 +10,7 @@
 #include "MultiImageRead.h"
 #include "TfModel1.h"
 #include "TrModel1.h"
+#include "IniConfig.h"
 //用来保存model1的指针
 //处理model1的输入(多线程读图，怎么裁图等等)
 //返回model1的结果
@@ -31,9 +32,31 @@ private:
 	bool initialize_binImg(MultiImageRead& mImgRead);
 	void threshold_segmentation(cv::Mat& img, cv::Mat& binImg, int level, int thre_col, int thre_vol);
 	void remove_small_objects(cv::Mat& binImg, int thre_vol);
+	class Deleter {
+	public:
+		handle operator()(handle model_handle) {
+			if (model_handle == nullptr)
+				return nullptr;
+			if (IniConfig::instance().getIniString("TensorRT", "USE_TR") == "OFF")
+			{
+				TfModel1* tf_model1 = (TfModel1*)model_handle;
+				delete tf_model1;
+				return nullptr;
+			}
+			if (IniConfig::instance().getIniString("TensorRT", "USE_TR") == "ON")
+			{
+				TrModel1* tr_model1 = (TrModel1*)model_handle;
+				delete tr_model1;
+				return nullptr;
+			}
+			throw std::exception("undefined TensorRT USE_TR value");
+		}
+	};
 private:
-	//std::unique_ptr<TrModel1> model1Handle;
-	std::unique_ptr<TfModel1> model1Handle;
+	//std::unique_ptr<handle, Deleter> hhh = nullptr;
+	std::pair<std::unique_ptr<TfModel1>, std::unique_ptr<TrModel1>> model1Handle;
+	bool use_tr = false;
+	//std::vector<std::unique_ptr<>>
 	int model1Height;
 	int model1Width;
 	float model1Mpp;

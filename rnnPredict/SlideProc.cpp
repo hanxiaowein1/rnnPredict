@@ -512,43 +512,58 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 	cout << "start rnn process: " << (char*)ctime(&now);
 	slideScore = runRnn(annos, mImgRead);
 
-	//在这里测试一下model3
-	vector<Anno> annos_for_m3 = regionProposal(50);
-	now = time(0);
-	cout << "start model3 process: " << (char*)ctime(&now);
-	vector<PointScore> m3Results = m3Holder->runModel3(mImgRead, annos_for_m3);
-	//vector<PointScore> m3Results = runModel3(mImgRead);
-	if (m3Results.size() > 10)
-		m3Results.erase(m3Results.begin() + 10, m3Results.end());
+	if (IniConfig::instance().getIniString("Model3", "state") != "ON")
+	{
+		//如果没有开启model3，那么只保留model2的结果
+		annos = regionProposal(10);
+		string model2ResultPath = in_savePath + "\\model2";
+		createDirRecursive(model2ResultPath);
+		vector<PointScore> pss = anno2PS(annos);
+		int saveRadius = 500;
+		saveImages(pss, saveRadius, model2ResultPath, mImgRead);
+		mImgRead.~MultiImageRead();
+	}
 	else
 	{
-		//先将annos转为PointScore
-		vector<PointScore> m2Results = anno2PS(annos);
-		int threshold = 200 / slideMpp;
-		removeDuplicatePS(m3Results, m2Results, threshold);
-		if(m3Results.size()>10)
+		//在这里测试一下model3
+		vector<Anno> annos_for_m3 = regionProposal(50);
+		now = time(0);
+		cout << "start model3 process: " << (char*)ctime(&now);
+		vector<PointScore> m3Results = m3Holder->runModel3(mImgRead, annos_for_m3);
+		//vector<PointScore> m3Results = runModel3(mImgRead);
+		if (m3Results.size() > 10)
 			m3Results.erase(m3Results.begin() + 10, m3Results.end());
+		else
+		{
+			//先将annos转为PointScore
+			vector<PointScore> m2Results = anno2PS(annos);
+			int threshold = 200 / slideMpp;
+			removeDuplicatePS(m3Results, m2Results, threshold);
+			if (m3Results.size() > 10)
+				m3Results.erase(m3Results.begin() + 10, m3Results.end());
+		}
+		now = time(0);
+		cout << "start save image: " << (char*)ctime(&now);
+		//将model3和model2的图像全部都保存下来进行查看
+		string model2ResultPath = in_savePath + "\\model2";
+		string model3ResultPath = in_savePath + "\\model3";
+		string model3InputPath = in_savePath + "\\model3Input";
+		createDirRecursive(model2ResultPath);
+		createDirRecursive(model3ResultPath);
+		createDirRecursive(model3InputPath);
+		annos.clear();
+		annos = regionProposal(10);
+		vector<PointScore> pss = anno2PS(annos);
+		int saveRadius = 500;
+		saveImages(pss, saveRadius, model2ResultPath, mImgRead);
+		annos.clear();
+		annos = regionProposal(50);
+		pss = anno2PS(annos);
+		saveImages(pss, saveRadius, model3InputPath, mImgRead);//可能会越界
+		saveImages(m3Results, saveRadius, model3ResultPath, mImgRead);//可能会越界
+		mImgRead.~MultiImageRead();
 	}
-	now = time(0);
-	cout << "start save image: " << (char*)ctime(&now);
-	//将model3和model2的图像全部都保存下来进行查看
-	string model2ResultPath = in_savePath + "\\model2";
-	string model3ResultPath = in_savePath + "\\model3";
-	string model3InputPath = in_savePath + "\\model3Input";
-	createDirRecursive(model2ResultPath);
-	createDirRecursive(model3ResultPath);
-	createDirRecursive(model3InputPath);
-	annos.clear();
-	annos = regionProposal(10);
-	vector<PointScore> pss = anno2PS(annos);
-	int saveRadius = 500;
-	saveImages(pss, saveRadius, model2ResultPath, mImgRead);
-	annos.clear();
-	annos = regionProposal(50);
-	pss = anno2PS(annos);
-	saveImages(pss, saveRadius, model3InputPath, mImgRead);//可能会越界
-	saveImages(m3Results, saveRadius, model3ResultPath, mImgRead);//可能会越界
-	mImgRead.~MultiImageRead();
+
 }
 
 
@@ -627,7 +642,7 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 //	return true;
 //}
 
-bool SlideProc::runSlide(const char* slide, vector<Anno>& annos)
+bool SlideProc::runSlide(const char* slide, vector<Anno>& annos, int len)
 {
 	//levelBin = 4;
 
@@ -636,8 +651,9 @@ bool SlideProc::runSlide(const char* slide, vector<Anno>& annos)
 	mImgRead.createThreadPool();
 	if (!mImgRead.status())
 		return false;
+	std::cout << "read handle initialized\n";
 	iniPara(slide, mImgRead);
-
+	std::cout << "get slide info done\n";
 	m_slide = string(slide);
 	rResults.clear();
 
@@ -663,8 +679,9 @@ bool SlideProc::runSlide(const char* slide, vector<Anno>& annos)
 
 	mImgRead.~MultiImageRead();
 
+	annos = regionProposal(len);
 	//将信息写到srp里面
-	annos.erase(annos.begin() + 10, annos.end());
+	//annos.erase(annos.begin() + 10, annos.end());
 	Anno* pann = new Anno[annos.size()];
 	for (int i = 0; i < annos.size(); i++) {
 		pann[i].id = i;
@@ -677,8 +694,10 @@ bool SlideProc::runSlide(const char* slide, vector<Anno>& annos)
 	cout << "write anno to slide: " << (char*)ctime(&now);
 	std::unique_ptr<SrpSlideRead> srp_read_handle = std::make_unique<SrpSlideRead>(slide);
 	srp_read_handle->callCleanAnno();
+	srp_read_handle->callBeginBatch();
 	srp_read_handle->callWriteAnno(pann, annos.size());
+	srp_read_handle->callEndBatch();
 	srp_read_handle->callWriteParamDouble("score", slideScore);
-
+	delete[]pann;
 	return true;
 }

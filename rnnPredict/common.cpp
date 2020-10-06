@@ -18,6 +18,8 @@ std::vector<std::string> split(std::string& s, char delimiter)
 
 std::vector<cv::Point> getRegionPoints2(cv::Mat& mask, float threshold)
 {
+	int mask_cols = mask.cols;
+	int mask_rows = mask.rows;
 	//cout << "enter getRegionPoints2" <<endl;
 	//先直接进行筛选操作
 	double minVal;
@@ -62,8 +64,8 @@ std::vector<cv::Point> getRegionPoints2(cv::Mat& mask, float threshold)
 	}
 	//还有将points转为512*512中的点
 	for (int i = 0; i < points.size(); i++) {
-		points[i].x = int((points[i].x + 0.5) * (512 / 16));
-		points[i].y = int((points[i].y + 0.5) * (512 / 16));
+		points[i].x = int((points[i].x + 0.5) * (512 / mask_cols));
+		points[i].y = int((points[i].y + 0.5) * (512 / mask_rows));
 	}
 	return points;//记住，第一个点不代表什么东西
 }

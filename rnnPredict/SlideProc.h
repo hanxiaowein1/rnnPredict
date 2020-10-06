@@ -123,8 +123,8 @@ public:
 	SlideProc(const char* iniPath);
 	//释放掉模型
 	~SlideProc();
-	//华乐要求将annos给传出去，而不是我这边写到srp里面
-	bool runSlide(const char* slide, vector<Anno>& annos);
+	//根据传入的len，来确定需要传出多少个annos
+	bool runSlide(const char* slide, vector<Anno>& annos, int len);
 	//给lab使用
 	//bool runSlide2(const char* slide);
 	//新加入model3

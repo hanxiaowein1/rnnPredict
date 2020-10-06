@@ -1,11 +1,17 @@
 #include "Model2Holder.h"
-
+#include "IniConfig.h"
 Model2Holder::Model2Holder()
 {
 }
 
 Model2Holder::Model2Holder(std::string iniPath)
 {
+	if (IniConfig::instance().getIniString("TensorRT", "USE_TR") == "ON")
+		use_tr = true;
+	else if (IniConfig::instance().getIniString("TensorRT", "USE_TR") == "OFF")
+		use_tr = false;
+	else
+		use_tr = false;
 	model2Config(iniPath);
 }
 
@@ -26,20 +32,37 @@ void Model2Holder::initPara(MultiImageRead& mImgRead)
 	mImgRead.getSlideWidth(slideWidth);
 	mImgRead.getSlideMpp(slideMpp);
 
-	model1Height = 512;
-	model1Width = 512;
-	model1Mpp = 0.586f;
+	model1Height = IniConfig::instance().getIniInt("Model1", "height");
+	model1Width = IniConfig::instance().getIniInt("Model1", "width");
+	model1Mpp = IniConfig::instance().getIniDouble("Model1", "mpp");
 }
 
 void Model2Holder::model2Config(std::string iniPath)
 {
 	//model2Handle = std::make_unique<TrModel2>(iniPath, "TrModel2");
 	//model2Handle = std::make_unique<TfModel2>(iniPath, "TfModel2");
-	model2Handle = std::make_unique<TfModel2>("TfModel2");
-	model2Handle->createThreadPool();
-	model2Mpp = model2Handle->inputProp.mpp;
-	model2Height = model2Handle->inputProp.height;
-	model2Width = model2Handle->inputProp.width;
+	//model2Handle = std::make_unique<TfModel2>("TfModel2");
+	//model2Handle->createThreadPool();
+	//model2Mpp = model2Handle->inputProp.mpp;
+	//model2Height = model2Handle->inputProp.height;
+	//model2Width = model2Handle->inputProp.width;
+
+	if (!use_tr)
+	{
+		model2Handle.first = std::make_unique<TfModel2>("TfModel2");
+		model2Handle.first->createThreadPool();
+		model2Mpp = model2Handle.first->inputProp.mpp;
+		model2Height = model2Handle.first->inputProp.height;
+		model2Width = model2Handle.first->inputProp.width;
+	}
+	else
+	{
+		model2Handle.second = std::make_unique<TrModel2>("TrModel2");
+		model2Handle.second->createThreadPool();
+		model2Mpp = model2Handle.second->inputProp.mpp;
+		model2Height = model2Handle.second->inputProp.height;
+		model2Width = model2Handle.second->inputProp.width;
+	}
 }
 
 void Model2Holder::createThreadPool(int threadNum)
@@ -179,8 +202,18 @@ void Model2Holder::sortResultsByScore(std::vector<regionResult>& results)
 
 void Model2Holder::model2Process(std::vector<cv::Mat>& imgs, std::vector<model2Result>& results)
 {
-	model2Handle->processDataConcurrency(imgs);
-	results = model2Handle->m_results;
+	//model2Handle->processDataConcurrency(imgs);
+	//results = model2Handle->m_results;
+	if (!use_tr)
+	{
+		model2Handle.first->processDataConcurrency(imgs);
+		results = model2Handle.first->m_results;
+	}
+	else
+	{
+		model2Handle.second->processDataConcurrency(imgs);
+		results = model2Handle.second->m_results;
+	}
 }
 
 void Model2Holder::readImageInOrder(std::vector<cv::Rect> rects, MultiImageRead& mImgRead, std::vector<cv::Mat>& imgs)
@@ -335,8 +368,19 @@ void Model2Holder::runModel2(MultiImageRead& mImgRead, std::vector<regionResult>
 			tmpRects.emplace_back(std::move(iter->first));
 		}
 
-		model2Handle->processDataConcurrency(imgs);
-		std::vector<model2Result> tempResults = model2Handle->m_results;
+		//model2Handle->processDataConcurrency(imgs);
+		//std::vector<model2Result> tempResults = model2Handle->m_results;
+		std::vector<model2Result> tempResults;
+		if (!use_tr)
+		{
+			model2Handle.first->processDataConcurrency(imgs);
+			tempResults = model2Handle.first->m_results;
+		}
+		else
+		{
+			model2Handle.second->processDataConcurrency(imgs);
+			tempResults = model2Handle.second->m_results;
+		}
 		for (int i = 0; i < tmpRects.size(); i++) {
 			PointScore ps;
 			cv::Point point;

@@ -31,13 +31,13 @@ struct PointScore
 };
 
 //写到srp文件里的信息
-typedef struct {
-	int id;
-	int x;
-	int y;
-	int type;
-	double score;
-}Anno;
+//typedef struct {
+//	int id;
+//	int x;
+//	int y;
+//	int type;
+//	double score;
+//}Anno;
 
 struct model3Result
 {

@@ -39,25 +39,7 @@
     <ClCompile Include="MultiImageRead.cpp">
       <Filter>源文件\SlideFactory</Filter>
     </ClCompile>
-    <ClCompile Include="OpenSlideRead.cpp">
-      <Filter>源文件\SlideFactory</Filter>
-    </ClCompile>
-    <ClCompile Include="SdpcSlideRead.cpp">
-      <Filter>源文件\SlideFactory</Filter>
-    </ClCompile>
-    <ClCompile Include="SlideFactory.cpp">
-      <Filter>源文件\SlideFactory</Filter>
-    </ClCompile>
-    <ClCompile Include="SlideRead.cpp">
-      <Filter>源文件\SlideFactory</Filter>
-    </ClCompile>
-    <ClCompile Include="SrpSlideRead.cpp">
-      <Filter>源文件\SlideFactory</Filter>
-    </ClCompile>
     <ClCompile Include="SlideProc.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="commonFunction.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="DLLManager.cpp">
@@ -137,25 +119,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="commonFunction.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="MultiImageRead.h">
-      <Filter>头文件\SlideFactory</Filter>
-    </ClInclude>
-    <ClInclude Include="OpenSlideRead.h">
-      <Filter>头文件\SlideFactory</Filter>
-    </ClInclude>
-    <ClInclude Include="SdpcSlideRead.h">
-      <Filter>头文件\SlideFactory</Filter>
-    </ClInclude>
-    <ClInclude Include="SlideFactory.h">
-      <Filter>头文件\SlideFactory</Filter>
-    </ClInclude>
-    <ClInclude Include="SlideRead.h">
-      <Filter>头文件\SlideFactory</Filter>
-    </ClInclude>
-    <ClInclude Include="SrpSlideRead.h">
       <Filter>头文件\SlideFactory</Filter>
     </ClInclude>
     <ClInclude Include="types.h">

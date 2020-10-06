@@ -2,6 +2,12 @@
 
 Model1Holder::Model1Holder(string iniPath)
 {
+	if (IniConfig::instance().getIniString("TensorRT", "USE_TR") == "ON")
+		use_tr = true;
+	else if (IniConfig::instance().getIniString("TensorRT", "USE_TR") == "OFF")
+		use_tr = false;
+	else
+		use_tr = false;
 	model1Config(iniPath);
 }
 
@@ -20,11 +26,28 @@ void Model1Holder::model1Config(string iniPath)
 {
 	//model1Handle = std::make_unique<TrModel1>(iniPath, "TrModel1");
 	//model1Handle = std::make_unique<TfModel1>(iniPath, "TfModel1");
-	model1Handle = std::make_unique<TfModel1>("TfModel1");
-	model1Handle->createThreadPool();
-	model1Mpp = model1Handle->inputProp.mpp;
-	model1Height = model1Handle->inputProp.height;
-	model1Width = model1Handle->inputProp.width;
+	//model1Handle = std::make_unique<TfModel1>("TfModel1");
+
+	//model1Handle->createThreadPool();
+	//model1Mpp = model1Handle->inputProp.mpp;
+	//model1Height = model1Handle->inputProp.height;
+	//model1Width = model1Handle->inputProp.width;
+	if (!use_tr)
+	{
+		model1Handle.first = std::make_unique<TfModel1>("TfModel1");
+		model1Handle.first->createThreadPool();
+		model1Mpp = model1Handle.first->inputProp.mpp;
+		model1Height = model1Handle.first->inputProp.height;
+		model1Width = model1Handle.first->inputProp.width;
+	}
+	else
+	{
+		model1Handle.second = std::make_unique<TrModel1>("TrModel1");
+		model1Handle.second->createThreadPool();
+		model1Mpp = model1Handle.second->inputProp.mpp;
+		model1Height = model1Handle.second->inputProp.height;
+		model1Width = model1Handle.second->inputProp.width;
+	}
 }
 
 void Model1Holder::createThreadPool(int threadNum)
@@ -238,8 +261,19 @@ vector<regionResult> Model1Holder::runModel1(MultiImageRead& mImgRead)
 			input_rects.emplace_back(std::move(iter->first));
 			input_imgs.emplace_back(std::move(iter->second));
 		}
-		model1Handle->processDataConcurrency(input_imgs);
-		vector<model1Result> results = model1Handle->m_results;
+		vector<model1Result> results;
+		//model1Handle->processDataConcurrency(input_imgs);
+		//vector<model1Result> results = model1Handle->m_results;
+		if (!use_tr)
+		{
+			model1Handle.first->processDataConcurrency(input_imgs);
+			results = model1Handle.first->m_results;
+		}
+		else
+		{
+			model1Handle.second->processDataConcurrency(input_imgs);
+			results = model1Handle.second->m_results;
+		}
 		for (auto iter = results.begin(); iter != results.end(); iter++) {
 			int place = iter - results.begin();
 			regionResult rResult;

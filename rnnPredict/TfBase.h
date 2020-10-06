@@ -57,4 +57,6 @@ public:
 	virtual bool checkQueueEmpty();
 };
 
+void showTensor(tensorflow::Tensor& tensor);
+
 #endif

@@ -109,3 +109,12 @@ bool TfBase::checkQueueEmpty()
 		return false;
 }
 
+void showTensor(tensorflow::Tensor& tensor)
+{
+	int dims = tensor.dims();
+	cout << "dims is: " << dims;
+	for (int i = 0; i < dims; i++)
+	{
+		cout << "dims[" << i << "]:" << tensor.dim_size(i) << " ";
+	}
+}

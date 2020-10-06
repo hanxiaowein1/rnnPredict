@@ -26,16 +26,33 @@ void SlideProc::initialize_handler(const char* iniPath)
 {
 	string modelConfigIni = string(iniPath);
 
-	model1Config();
-	m1Holder = std::make_unique<Model1Holder>(modelConfigIni);
+	if (IniConfig::instance().getIniString("Model1", "state") == "ON")
+	{
+		model1Config();
+		m1Holder = std::make_unique<Model1Holder>(modelConfigIni);
+		std::cout << "model1 initialized\n";
+	}
+	
 	//m1Holder->createThreadPool(3);
-	model2Config();
-	m2Holder = std::make_unique<Model2Holder>(modelConfigIni);
-	m2Holder->createThreadPool(2);
+	if (IniConfig::instance().getIniString("Model2", "state") == "ON")
+	{
+		model2Config();
+		m2Holder = std::make_unique<Model2Holder>(modelConfigIni);
+		m2Holder->createThreadPool(2);
+		std::cout << "model2 initialized\n";
+	}
+
 	//model3Config(string(model3Path));
-	m3Holder = std::make_unique<Model3Holder>(modelConfigIni);
-	m3Holder->createThreadPool(1);
-	rnnHolder = std::make_unique<RnnHolder>(modelConfigIni);
+	if (IniConfig::instance().getIniString("Model3", "state") == "ON")
+	{
+		m3Holder = std::make_unique<Model3Holder>(modelConfigIni);
+		m3Holder->createThreadPool(1);
+	}
+	if (IniConfig::instance().getIniString("Rnn", "state") == "ON")
+	{
+		rnnHolder = std::make_unique<RnnHolder>(modelConfigIni);
+		std::cout << "rnn initialized\n";
+	}
 }
 
 void SlideProc::saveResult(string savePath, string filename)
