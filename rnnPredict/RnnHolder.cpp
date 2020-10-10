@@ -41,6 +41,18 @@ float RnnHolder::runRnn(std::vector<model2Result>& results)
 	return runRnn(tem_tensor_res);
 }
 
+float RnnHolder::outputSix2(std::vector<float>& rnnResults_f)
+{
+	if (rnnResults_f.size() == 0)
+		return -1;
+	else
+	{
+		float sum_6 = std::accumulate(rnnResults_f.begin(), rnnResults_f.end(), 0.0f);
+		float avg_6 = sum_6 / rnnResults_f.size();
+		return avg_6;
+	}
+}
+
 float RnnHolder::outputSix(vector<float>& rnnResults_f)
 {
 	if (rnnResults_f.size() != 6)
@@ -96,7 +108,7 @@ float RnnHolder::runRnn(tensorflow::Tensor& tensor)
 	{
 		rnnResults_f.emplace_back(rnnResults[i].get());
 	}
-	float retScore = outputSix(rnnResults_f);
+	float retScore = outputSix2(rnnResults_f);
 	return retScore;
 }
 

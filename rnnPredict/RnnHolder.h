@@ -9,15 +9,16 @@ class RnnHolder
 {
 public:
 	RnnHolder();
-	RnnHolder(string rnnParentPath);
+	RnnHolder(std::string rnnParentPath);
 	~RnnHolder();
 	//输入为model2的十张图像的输出
 	float runRnn(tensorflow::Tensor& tensor);
 	float runRnn(std::vector<model2Result>& results);
 private:
-	void rnnConfig(string iniPath);
+	void rnnConfig(std::string iniPath);
 	float runRnnThread2(int i, tensorflow::Tensor& inputTensor);
-	float outputSix(vector<float>& rnnResults_f);
+	float outputSix(std::vector<float>& rnnResults_f);
+	float outputSix2(std::vector<float>& rnnResults_f);
 private:
 	//vector<rnn*> rnnHandle;
 	//vector<TfRnn*> rnnHandle;
