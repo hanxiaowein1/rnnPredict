@@ -1,15 +1,16 @@
 #include "Caffe2Base.h"
-
-extern bool transformInMemory(std::vector<cv::Mat>& imgs, float* dstPtr);
-extern std::vector<std::string> split(std::string& s, char delimiter);
+#include "cv_extend.h"
+#include "CommonFunction.h"
 
 Caffe2Base::Caffe2Base(std::string group)
 {
 	fileProp.initByIniConfig(group);
+	construct();
 }
 
 void Caffe2Base::construct()
 {
+	caffe2::GlobalInit();
 	std::vector<std::string> two_nets = split(fileProp.filepath, ',');
 	//第一个是initnet，第二个是predict_net
 	std::string init_net_path = two_nets[0];
@@ -20,7 +21,7 @@ void Caffe2Base::construct()
 	new caffe2::CUDAContext(option);
 
 	// initialize Net and Workspace
-	caffe2::NetDef initNet_, predictNet_;
+	//caffe2::NetDef initNet_, predictNet_;
 	predictNet_.mutable_device_option()->set_device_id(0);
 	initNet_.mutable_device_option()->set_device_id(0);
 	predictNet_.mutable_device_option()->set_device_type((int)caffe2::CUDA);

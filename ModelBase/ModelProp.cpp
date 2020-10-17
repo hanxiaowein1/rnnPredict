@@ -1,5 +1,6 @@
 #include "ModelProp.h"
 #include "IniConfig.h"
+#include "CommonFunction.h"
 
 void ModelInputProp::initByiniFile(std::string iniPath, std::string group)
 {
@@ -22,8 +23,6 @@ void ModelInputProp::initByIniConfig(std::string group)
 	batchsize = IniConfig::instance().getIniInt(group, "batchsize");
 	mpp = IniConfig::instance().getIniDouble(group, "mpp");
 }
-
-extern std::vector<std::string> split(std::string& s, char delimiter);
 
 void ModelFileProp::initByiniFile(std::string iniPath, std::string group)
 {
@@ -52,7 +51,7 @@ void ModelFileProp::initByIniConfig(std::string group)
 
 ModelProp::~ModelProp() {
 	stopped.store(true);
-	cv_task.notify_all();
+	task_cv.notify_all();
 	for (std::thread& thread : pool) {
 		if (thread.joinable())
 			thread.join();
@@ -122,14 +121,14 @@ void ModelProp::processDataConcurrency(std::vector<cv::Mat>& imgs)
 	std::function<void(std::vector<cv::Mat>&)> mat2tensor_fun = std::bind(&ModelProp::convertMat2NeededDataInBatch, this, std::placeholders::_1);
 	auto task = std::make_shared<std::packaged_task<void()>>
 		(std::bind(&ModelProp::process2, this, std::ref(imgs), mat2tensor_fun));
-	std::unique_lock<std::mutex> myGuard(m_lock);
+	std::unique_lock<std::mutex> task_lock(task_mutex);
 	tasks.emplace(
 		[task]() {
 			(*task)();
 		}
 	);
-	myGuard.unlock();
-	cv_task.notify_one();
+	task_lock.unlock();
+	task_cv.notify_one();
 	//开始处理
 	int loopTime = std::ceil(float(imgs.size()) / float(inputProp.batchsize));
 	//判断队列是否为空
@@ -145,7 +144,7 @@ void ModelProp::processDataConcurrency(std::vector<cv::Mat>& imgs)
 		{
 			//等待
 			tensor_queue_cv.wait(myGuard, [this] {
-				if (!checkQueueEmpty() > 0 || stopped.load())
+				if (!checkQueueEmpty() || stopped.load())
 					return true;
 				else
 					return false;
@@ -169,8 +168,8 @@ void ModelProp::createThreadPool()
 				{
 					std::function<void()> task;
 					{   // 获取一个待执行的 task
-						std::unique_lock<std::mutex> lock{ this->m_lock };// unique_lock 相比 lock_guard 的好处是：可以随时 unlock() 和 lock()
-						this->cv_task.wait(lock,
+						std::unique_lock<std::mutex> task_lock{ this->task_mutex };// unique_lock 相比 lock_guard 的好处是：可以随时 unlock() 和 lock()
+						this->task_cv.wait(task_lock,
 							[this] {
 								return this->stopped.load() || !this->tasks.empty();
 							}

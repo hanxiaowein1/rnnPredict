@@ -3,7 +3,7 @@
 #define _TFMODEL3_H_
 
 #include "TfBase.h"
-
+#include "types.h"
 class TfModel3 : public TfBase
 {
 public:

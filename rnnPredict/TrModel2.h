@@ -2,6 +2,7 @@
 #ifndef _TRMODEL2_H_
 #define _TRMODEL2_H_
 #include "TrBase.h"
+#include "types.h"
 class TrModel2 : public TrBase
 {
 public:

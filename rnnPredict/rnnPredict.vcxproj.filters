@@ -99,9 +99,6 @@
     <ClCompile Include="TfRnn.cpp">
       <Filter>源文件\Model</Filter>
     </ClCompile>
-    <ClCompile Include="ModelProp.cpp">
-      <Filter>源文件\Model</Filter>
-    </ClCompile>
     <ClCompile Include="TrBase.cpp">
       <Filter>源文件\Model</Filter>
     </ClCompile>
@@ -114,8 +111,8 @@
     <ClCompile Include="..\..\..\..\..\..\ThirdParty\TensorRT-6.0.1.5\samples\common\logger.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="IniConfig.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="DetectDll.cpp">
+      <Filter>源文件\Model</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -173,9 +170,6 @@
     <ClInclude Include="TfModel3.h">
       <Filter>头文件\Model</Filter>
     </ClInclude>
-    <ClInclude Include="ModelProp.h">
-      <Filter>头文件\Model</Filter>
-    </ClInclude>
     <ClInclude Include="TfRnn.h">
       <Filter>头文件\Model</Filter>
     </ClInclude>
@@ -188,8 +182,8 @@
     <ClInclude Include="TrModel2.h">
       <Filter>头文件\Model</Filter>
     </ClInclude>
-    <ClInclude Include="IniConfig.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="DetectDll.h">
+      <Filter>头文件\Model</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

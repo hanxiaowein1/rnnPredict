@@ -3,46 +3,7 @@
 #include <sstream>
 #include "opencv2/opencv.hpp"
 
-//分解string字符串
-std::vector<std::string> split(std::string& s, char delimiter)
-{
-    std::vector<std::string> tokens;
-    std::string token;
-    std::istringstream tokenStream(s);
-    while (std::getline(tokenStream, token, delimiter))
-    {
-        tokens.push_back(token);
-    }
-    return tokens;
-}
 
-bool transformInMemory(std::vector<cv::Mat>& imgs, float* dstPtr)
-{
-	if (imgs.size() == 0)
-		return false;
-	int width = imgs[0].cols;
-	int height = imgs[0].rows;
-	int channel = imgs[0].channels();
-	for (int i = 0; i < imgs.size(); i++)
-	{
-		imgs[i].convertTo(imgs[i], CV_32F);
-		imgs[i] = (imgs[i] / 255 - 0.5) * 2;
-	}
-
-	//注意顺序，是CHW，不是HWC
-	for (int i = 0; i < imgs.size(); i++) {
-		for (int c = 0; c < channel; c++) {
-			for (int h = 0; h < height; h++) {
-				float* linePtr = (float*)imgs[i].ptr(h);
-				for (int w = 0; w < width; w++) {
-					//换算地址
-					dstPtr[i * height * width * channel + c * height * width + h * width + w] = *(linePtr + w * 3 + c);
-				}
-			}
-		}
-	}
-	return true;
-}
 
 std::vector<cv::Point> getRegionPoints2(cv::Mat& mask, float threshold)
 {

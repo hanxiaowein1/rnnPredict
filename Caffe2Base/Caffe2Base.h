@@ -21,13 +21,12 @@ public:
 	caffe2::NetDef initNet_, predictNet_;
 public:
 	std::queue<std::vector<float>> tensorQueue;
+
 public:
 	void construct();
 	virtual void convertMat2NeededDataInBatch(std::vector<cv::Mat>& imgs);
 	virtual bool checkQueueEmpty();
-	virtual 
-	void runNet(std::vector<float>& data);
-
+	virtual void runNet(std::vector<float>& data);
 
 public:
 	Caffe2Base(std::string group);

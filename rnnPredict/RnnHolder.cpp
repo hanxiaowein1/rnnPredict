@@ -108,7 +108,7 @@ float RnnHolder::runRnn(tensorflow::Tensor& tensor)
 	{
 		rnnResults_f.emplace_back(rnnResults[i].get());
 	}
-	float retScore = outputSix2(rnnResults_f);
+	float retScore = outputSix(rnnResults_f);
 	return retScore;
 }
 

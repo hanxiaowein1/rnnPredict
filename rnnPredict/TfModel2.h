@@ -2,6 +2,7 @@
 #ifndef _TFMODEL2_H_
 #define _TFMODEL2_H_
 #include "TfBase.h"
+#include "types.h"
 class TfModel2 : public TfBase
 {
 public:

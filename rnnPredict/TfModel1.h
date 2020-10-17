@@ -7,7 +7,7 @@
 #include <thread>
 #include <future>
 #include "TfBase.h"
-
+#include "types.h"
 //我可以将这个类写成多线程处理类啊！
 //因为从外部从cv::Mat转为tensorflow::Tensor也是时间，而且逻辑也很混乱
 //不如直接传入vector<cv::Mat>，然后在类的内部保持一个queue<tensorflow::Tensor>，

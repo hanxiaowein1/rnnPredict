@@ -10,7 +10,8 @@
 #include <atomic>
 #include <thread>
 #include <future>
-#include "types.h"
+//#include "types.h"
+#include "opencv2/opencv.hpp"
 
 class ModelInputProp
 {
@@ -49,10 +50,10 @@ public:
 	//线程池
 	std::vector<std::thread> pool;//开启一个线程
 	// 任务队列
-	std::condition_variable cv_task;
+	std::condition_variable task_cv;
 	std::queue<Task> tasks;
 	//对task的锁
-	std::mutex m_lock;
+	std::mutex task_mutex;
 	std::atomic<bool> stopped;//停止线程的标志
 	std::atomic<int> idlThrNum = 1;//判断线程有多少闲置;
 	std::atomic<int> totalThrNum = 1;//判断总共有多少线程;
@@ -64,10 +65,14 @@ public:
 public:
 	virtual ~ModelProp();
 	virtual void resizeImages(std::vector<cv::Mat>& imgs, int height, int width);
+
+	//以下三个函数用不着了
 	virtual void process(std::vector<cv::Mat>& imgs);
 	//以batchsize为单位，对imgs进行inFunc处理
 	virtual void process2(std::vector<cv::Mat>& imgs, std::function<void(std::vector<cv::Mat>&)> inFunc);
 	virtual void processInBatch(std::vector<cv::Mat>& imgs) = 0;
+
+
 	virtual void convertMat2NeededDataInBatch(std::vector<cv::Mat>& imgs) = 0;
 	virtual void clearResult() = 0;
 	virtual void createThreadPool();

@@ -3,6 +3,7 @@
 #define _INTERFACE_H_
 
 #include "SlideProc.h"
+#include "types.h"
 //export function
 #ifdef _RNNFUNC_EXPORT_
 #define RNN_API extern "C" __declspec(dllexport)

@@ -5,7 +5,7 @@
 #include "SlideProc.h"
 #include "DLLManager.h"
 #include "IniConfig.h"
-
+#include "DetectDll.h"
 void concatTest()
 {
 	using namespace tensorflow::ops;
@@ -414,6 +414,24 @@ void startRun(const char* iniPath)
 
 	subTask(slideList, slideProc, savePath);
 }
+
+//≤‚ ‘“ªœ¬Caffe2Base.dll
+//int main()
+//{	
+//	std::string config_path = "../x64/Release/config.ini";
+//	setIniPath(config_path);
+//	DetectDll detect_dll(config_path);
+//	cv::Mat img = cv::imread("D:\\TEST_DATA\\1100037_1\\12_3.tif");
+//	std::vector<cv::Mat> imgs;
+//	imgs.emplace_back(img);
+//	auto result = detect_dll.runModelInterface(imgs);
+//	for (auto elem : result)
+//	{
+//		cout << elem.first << ": " << elem.second << endl;
+//	}
+//	system("pause");
+//	return 0;
+//}
 
 int main(int args, char* argv[])
 {

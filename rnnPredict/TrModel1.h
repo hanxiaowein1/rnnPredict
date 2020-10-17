@@ -7,6 +7,7 @@
 #include <thread>
 #include <future>
 #include "TrBase.h"
+#include "types.h"
 class TrModel1 : public TrBase
 {
 public:

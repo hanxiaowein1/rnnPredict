@@ -5,6 +5,7 @@
 //#include "rnn.h"
 #include "TfRnn.h"
 #include "MultiImageRead.h"
+#include "types.h"
 class RnnHolder
 {
 public:
