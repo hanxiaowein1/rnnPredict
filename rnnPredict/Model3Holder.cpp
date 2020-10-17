@@ -36,38 +36,38 @@ void Model3Holder::model3Config(string iniPath)
 	model3Mpp = model3Handle->inputProp.mpp;
 }
 
-void Model3Holder::createThreadPool(int threadNum)
-{
-	idlThrNum = threadNum;
-	totalThrNum = threadNum;
-	for (int size = 0; size < totalThrNum; ++size)
-	{   //初始化线程数量
-		pool.emplace_back(
-			[this]
-			{ // 工作线程函数
-				while (!this->stopped.load())
-				{
-					std::function<void()> task;
-					{   // 获取一个待执行的 task
-						std::unique_lock<std::mutex> lock{ this->task_mutex };// unique_lock 相比 lock_guard 的好处是：可以随时 unlock() 和 lock()
-						this->task_cv.wait(lock,
-							[this] {
-								return this->stopped.load() || !this->tasks.empty();
-							}
-						); // wait 直到有 task
-						if (this->stopped.load() && this->tasks.empty())
-							return;
-						task = std::move(this->tasks.front()); // 取一个 task
-						this->tasks.pop();
-					}
-					idlThrNum--;
-					task();
-					idlThrNum++;
-				}
-			}
-			);
-	}
-}
+//void Model3Holder::createThreadPool(int threadNum)
+//{
+//	idlThrNum = threadNum;
+//	totalThrNum = threadNum;
+//	for (int size = 0; size < totalThrNum; ++size)
+//	{   //初始化线程数量
+//		pool.emplace_back(
+//			[this]
+//			{ // 工作线程函数
+//				while (!this->stopped.load())
+//				{
+//					std::function<void()> task;
+//					{   // 获取一个待执行的 task
+//						std::unique_lock<std::mutex> lock{ this->task_mutex };// unique_lock 相比 lock_guard 的好处是：可以随时 unlock() 和 lock()
+//						this->task_cv.wait(lock,
+//							[this] {
+//								return this->stopped.load() || !this->tasks.empty();
+//							}
+//						); // wait 直到有 task
+//						if (this->stopped.load() && this->tasks.empty())
+//							return;
+//						task = std::move(this->tasks.front()); // 取一个 task
+//						this->tasks.pop();
+//					}
+//					idlThrNum--;
+//					task();
+//					idlThrNum++;
+//				}
+//			}
+//			);
+//	}
+//}
 
 void Model3Holder::pushData(MultiImageRead& mImgRead)
 {
@@ -83,85 +83,85 @@ void Model3Holder::pushData(MultiImageRead& mImgRead)
 	}
 }
 
-void Model3Holder::popQueueWithoutLock(vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
-{
-	int size = data_queue.size();
-	for (int i = 0; i < size; i++)
-	{
-		rectMats.emplace_back(std::move(data_queue.front()));
-		data_queue.pop();
-	}
-}
-
-bool Model3Holder::popData(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
-{
-	std::unique_lock<std::mutex> data_lock(data_mutex);
-	if (data_queue.size() > 0)
-	{
-		popQueueWithoutLock(rectMats);
-		data_lock.unlock();
-		return true;
-	}
-	else
-	{
-		data_lock.unlock();
-		//取得tasks的锁，检查是否还有任务
-		std::unique_lock<std::mutex> task_lock(task_mutex);
-		if (tasks.size() > 0)
-		{
-			task_lock.unlock();
-			//证明有task，那么data_mutex再次锁上，因为一定会有数据唤醒它
-			data_lock.lock();
-			data_cv.wait(data_lock, [this] {
-				if (data_queue.size() > 0 || stopped.load()) {
-					return true;
-				}
-				else {
-					return false;
-				}
-				});
-			if (stopped.load())
-				return false;
-			popQueueWithoutLock(rectMats);
-			data_lock.unlock();
-			return true;
-		}
-		else
-		{
-			task_lock.unlock();
-			//如果没有task，那么要检查是否有线程在运行
-			if (idlThrNum.load() == totalThrNum.load())
-			{
-				//如果没有线程在运行，那么在看看队列是否有元素（万一在判断的时候进入了队列了呢？）
-				data_lock.lock();//其实不用加锁，因为没有线程在运行，肯定不会占用锁了
-				popQueueWithoutLock(rectMats);
-				data_lock.unlock();
-				if (rectMats.size() == 0)
-					return false;
-				return true;
-			}
-			else
-			{
-				//如果有线程在运行，那么在锁住队列，等待人来唤醒
-				data_lock.lock();
-				data_cv.wait_for(data_lock, 1000ms, [this] {
-					if (data_queue.size() > 0 || stopped.load()) {
-						return true;
-					}
-					else {
-						return false;
-					}
-					});
-				if (stopped.load())
-					return false;
-				//popQueueWithoutLock(rectMats);
-				data_lock.unlock();
-				return popData(rectMats);
-				//return true;
-			}
-		}
-	}
-}
+//void Model3Holder::popQueueWithoutLock(vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
+//{
+//	int size = data_queue.size();
+//	for (int i = 0; i < size; i++)
+//	{
+//		rectMats.emplace_back(std::move(data_queue.front()));
+//		data_queue.pop();
+//	}
+//}
+//
+//bool Model3Holder::popData(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
+//{
+//	std::unique_lock<std::mutex> data_lock(data_mutex);
+//	if (data_queue.size() > 0)
+//	{
+//		popQueueWithoutLock(rectMats);
+//		data_lock.unlock();
+//		return true;
+//	}
+//	else
+//	{
+//		data_lock.unlock();
+//		//取得tasks的锁，检查是否还有任务
+//		std::unique_lock<std::mutex> task_lock(task_mutex);
+//		if (tasks.size() > 0)
+//		{
+//			task_lock.unlock();
+//			//证明有task，那么data_mutex再次锁上，因为一定会有数据唤醒它
+//			data_lock.lock();
+//			data_cv.wait(data_lock, [this] {
+//				if (data_queue.size() > 0 || stopped.load()) {
+//					return true;
+//				}
+//				else {
+//					return false;
+//				}
+//				});
+//			if (stopped.load())
+//				return false;
+//			popQueueWithoutLock(rectMats);
+//			data_lock.unlock();
+//			return true;
+//		}
+//		else
+//		{
+//			task_lock.unlock();
+//			//如果没有task，那么要检查是否有线程在运行
+//			if (idlThrNum.load() == totalThrNum.load())
+//			{
+//				//如果没有线程在运行，那么在看看队列是否有元素（万一在判断的时候进入了队列了呢？）
+//				data_lock.lock();//其实不用加锁，因为没有线程在运行，肯定不会占用锁了
+//				popQueueWithoutLock(rectMats);
+//				data_lock.unlock();
+//				if (rectMats.size() == 0)
+//					return false;
+//				return true;
+//			}
+//			else
+//			{
+//				//如果有线程在运行，那么在锁住队列，等待人来唤醒
+//				data_lock.lock();
+//				data_cv.wait_for(data_lock, 1000ms, [this] {
+//					if (data_queue.size() > 0 || stopped.load()) {
+//						return true;
+//					}
+//					else {
+//						return false;
+//					}
+//					});
+//				if (stopped.load())
+//					return false;
+//				//popQueueWithoutLock(rectMats);
+//				data_lock.unlock();
+//				return popData(rectMats);
+//				//return true;
+//			}
+//		}
+//	}
+//}
 
 cv::Point Model3Holder::rect2Point(int x, int y, float radius)
 {

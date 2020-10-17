@@ -15,7 +15,7 @@ DetectHandle getDetectHandle(std::string config_path)
 {
 	setIniPath(config_path);
 	DetectModel* detect_model = new DetectModel("DetectModel");
-	detect_model->createThreadPool();
+	detect_model->createThreadPool(1);
 	//return (DetectHandle)detect_model;
 	return reinterpret_cast<DetectHandle>(detect_model);
 }

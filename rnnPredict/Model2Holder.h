@@ -5,7 +5,9 @@
 #include "TfModel2.h"
 #include "TrModel2.h"
 #include "MultiImageRead.h"
-class Model2Holder
+#include "multi_thread_queue.h"
+
+class Model2Holder : public MultiThreadQueue<std::pair<cv::Rect, cv::Mat>>
 {
 public:
 	Model2Holder();
@@ -13,12 +15,12 @@ public:
 	~Model2Holder();
 	void runModel2(MultiImageRead& mImgRead, std::vector<regionResult>& rResults);
 	void model2Process(std::vector<cv::Mat>& imgs, std::vector<model2Result>& results);
-	void createThreadPool(int threadNum);
+	//void createThreadPool(int threadNum);
 	void readImageInOrder(std::vector<cv::Rect> rects, MultiImageRead& mImgRead, std::vector<cv::Mat>& imgs);
 private:
-	void popQueueWithoutLock(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
+	//void popQueueWithoutLock(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
 	void pushData(MultiImageRead& mImgRead);
-	bool popData(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
+	//bool popData(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
 	void sortResultsByScore(std::vector<regionResult>& results);
 	void model2Config(std::string iniPath);
 	void initPara(MultiImageRead &mImgRead);
@@ -39,22 +41,6 @@ private:
 	int slideHeight;
 	int slideWidth;
 	double slideMpp;
-
-	std::mutex data_mutex;
-	std::condition_variable data_cv;
-	std::queue<std::pair<cv::Rect, cv::Mat>> data_queue;
-
-	//更改多线程的形式，开启线程池，然后将重复的task推到tasks里面(还是照抄以前的套路而已)
-	using Task = std::function<void()>;
-	//thread pool
-	std::vector<std::thread> pool;
-	// task
-	std::condition_variable task_cv;
-	std::queue<Task> tasks;
-	std::mutex task_mutex;
-	std::atomic<bool> stopped;//停止线程的标志
-	std::atomic<int> idlThrNum = 1;//闲置线程数量
-	std::atomic<int> totalThrNum = 1;//总共线程数量
 };
 
 #endif

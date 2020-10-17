@@ -10,8 +10,8 @@
 #include <atomic>
 #include <thread>
 #include <future>
-//#include "types.h"
 #include "opencv2/opencv.hpp"
+#include "my_thread.h"
 
 class ModelInputProp
 {
@@ -38,25 +38,13 @@ public:
 	void initByIniConfig(std::string group);
 };
 
-class ModelProp
+class ModelProp : public MyThread
 {
 public:
 	ModelInputProp inputProp;
 	ModelFileProp fileProp;
 	std::mutex queue_lock;
 	std::condition_variable tensor_queue_cv;
-
-	using Task = std::function<void()>;
-	//线程池
-	std::vector<std::thread> pool;//开启一个线程
-	// 任务队列
-	std::condition_variable task_cv;
-	std::queue<Task> tasks;
-	//对task的锁
-	std::mutex task_mutex;
-	std::atomic<bool> stopped;//停止线程的标志
-	std::atomic<int> idlThrNum = 1;//判断线程有多少闲置;
-	std::atomic<int> totalThrNum = 1;//判断总共有多少线程;
 
 	//std::function<void(std::vector<cv::Mat>&)> task;//这个用来保存处理一个batchsize的函数
 							   //而且想了一下，如果要调用task，那么传入的参数一定是引用，所以，还需要一个成员变量（即result）当做task的参数，然后每次修改这个成员变量
@@ -75,7 +63,6 @@ public:
 
 	virtual void convertMat2NeededDataInBatch(std::vector<cv::Mat>& imgs) = 0;
 	virtual void clearResult() = 0;
-	virtual void createThreadPool();
 	virtual void processDataConcurrency(std::vector<cv::Mat>& imgs);
 	virtual bool checkQueueEmpty() = 0;
 	virtual void processFirstDataInQueue() = 0;

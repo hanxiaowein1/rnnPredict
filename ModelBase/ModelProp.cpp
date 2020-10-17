@@ -50,14 +50,7 @@ void ModelFileProp::initByIniConfig(std::string group)
 }
 
 ModelProp::~ModelProp() {
-	stopped.store(true);
-	task_cv.notify_all();
-	for (std::thread& thread : pool) {
-		if (thread.joinable())
-			thread.join();
-	}
-	//然后再把processTfModel1停掉
-	tensor_queue_cv.notify_all();
+
 }
 
 void ModelProp::resizeImages(std::vector<cv::Mat>& imgs, int height, int width)
@@ -153,37 +146,5 @@ void ModelProp::processDataConcurrency(std::vector<cv::Mat>& imgs)
 				return;
 			processFirstDataInQueue();
 		}
-	}
-}
-
-void ModelProp::createThreadPool()
-{
-	int num = idlThrNum;
-	for (int size = 0; size < num; ++size)
-	{   //初始化线程数量
-		pool.emplace_back(
-			[this]
-			{ // 工作线程函数
-				while (!this->stopped.load())
-				{
-					std::function<void()> task;
-					{   // 获取一个待执行的 task
-						std::unique_lock<std::mutex> task_lock{ this->task_mutex };// unique_lock 相比 lock_guard 的好处是：可以随时 unlock() 和 lock()
-						this->task_cv.wait(task_lock,
-							[this] {
-								return this->stopped.load() || !this->tasks.empty();
-							}
-						); // wait 直到有 task
-						if (this->stopped.load() && this->tasks.empty())
-							return;
-						task = std::move(this->tasks.front()); // 取一个 task
-						this->tasks.pop();
-					}
-					idlThrNum--;
-					task();
-					idlThrNum++;
-				}
-			}
-			);
 	}
 }
