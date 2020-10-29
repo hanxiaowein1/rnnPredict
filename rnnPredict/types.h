@@ -3,7 +3,6 @@
 #define _TYPES_H_
 #include "opencv2/opencv.hpp"
 //保存着model1的结果
-typedef unsigned long long* handle;
 struct model1Result
 {
 	float score;//model1的分数

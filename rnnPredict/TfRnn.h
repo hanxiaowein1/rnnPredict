@@ -16,7 +16,7 @@ private:
 	vector<float> resultOutput(tensorflow::Tensor& tensor);
 	virtual void clearResult() {}
 	virtual void convertMat2NeededDataInBatch(std::vector<cv::Mat>& imgs) {}
-	virtual void processFirstDataInQueue() {}
+	virtual int processFirstDataInQueue() { return 1; }
 	virtual void processInBatch(std::vector<cv::Mat>& imgs) {};
 };
 

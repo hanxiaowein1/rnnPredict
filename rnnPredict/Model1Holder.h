@@ -24,33 +24,13 @@ public:
 	//void createThreadPool(int threadNum);
 private:
 	void pushData(MultiImageRead& mImgRead);
-	vector<cv::Rect> iniRects(int sHeight, int sWidth, int height, int width, int overlap, bool flag_right, bool flag_down);
+	vector<cv::Rect> iniRects(int sHeight, int sWidth, int height, int width, int overlap, bool flag_right, bool flag_down, int &rows, int &cols);
 	vector<cv::Rect> get_rects_slide();
 	void model1Config(string iniPath);
 	bool iniPara(MultiImageRead& mImgRead);
 	bool initialize_binImg(MultiImageRead& mImgRead);
 	void threshold_segmentation(cv::Mat& img, cv::Mat& binImg, int level, int thre_col, int thre_vol);
 	void remove_small_objects(cv::Mat& binImg, int thre_vol);
-	class Deleter {
-	public:
-		handle operator()(handle model_handle) {
-			if (model_handle == nullptr)
-				return nullptr;
-			if (IniConfig::instance().getIniString("TensorRT", "USE_TR") == "OFF")
-			{
-				TfModel1* tf_model1 = (TfModel1*)model_handle;
-				delete tf_model1;
-				return nullptr;
-			}
-			if (IniConfig::instance().getIniString("TensorRT", "USE_TR") == "ON")
-			{
-				TrModel1* tr_model1 = (TrModel1*)model_handle;
-				delete tr_model1;
-				return nullptr;
-			}
-			throw std::exception("undefined TensorRT USE_TR value");
-		}
-	};
 private:
 	//std::unique_ptr<handle, Deleter> hhh = nullptr;
 	std::pair<std::unique_ptr<TfModel1>, std::unique_ptr<TrModel1>> model1Handle;

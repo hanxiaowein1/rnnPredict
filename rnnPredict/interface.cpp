@@ -1,9 +1,10 @@
 #include "interface.h"
 #include "DLLManager.h"
 #include "IniConfig.h"
+#include "types.h"
+#include "SlideProc.h"
 
-
-handle initialize_handle(const char* iniPath)
+RnnHandle initialize_handle(const char* iniPath)
 {
 	setIniPath(iniPath);
 	SlideProc* slideProc = new SlideProc(iniPath);
@@ -11,11 +12,12 @@ handle initialize_handle(const char* iniPath)
 	auto myHandle = new std::pair<SlideProc*, DLLManager*>[1];
 	myHandle->first = slideProc;
 	myHandle->second = manager;
-	return (handle)myHandle;
+	return (RnnHandle)myHandle;
 }
 
-bool slideProcess(handle myHandle, const char* slidePath, Anno* annos, int* len, double* wholeScore)
+bool slideProcess(RnnHandle myHandle, const char* slidePath, Anno* annos, int* len, double* wholeScore, UpdateProgressFunc callback)
 {
+	setProgressFun(callback);
 	std::pair<SlideProc*, DLLManager*>* myHandle2 = (std::pair<SlideProc*, DLLManager*>*)myHandle;
 	vector<Anno> annos_v;
 	bool flag = myHandle2->first->runSlide(slidePath, annos_v, *len);
@@ -39,7 +41,7 @@ bool slideProcess(handle myHandle, const char* slidePath, Anno* annos, int* len,
 //	return flag;
 //}
 
-void freeModelMem(handle myHandle)
+void freeModelMem(RnnHandle myHandle)
 {
 	std::pair<SlideProc*, DLLManager*>* myHandle2 = (std::pair<SlideProc*, DLLManager*>*)myHandle;
 	delete myHandle2->first;

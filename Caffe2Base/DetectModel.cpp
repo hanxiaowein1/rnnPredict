@@ -10,13 +10,11 @@ void DetectModel::clearResult()
 	m_result.clear();
 }
 
-void DetectModel::processFirstDataInQueue()
+int DetectModel::processFirstDataInQueue()
 {
 	//处理队列的第一个元素
-	std::vector<float> input_data = std::move(tensorQueue.front());
-	tensorQueue.pop();
-	int tensorBatch = input_data.size() /
-		(inputProp.height * inputProp.width * inputProp.channel);
+	std::vector<float> input_data = std::move(tensorQueue.front().second);
+	int tensorBatch = tensorQueue.front().first;
 	runNet(input_data);
 
 	//处理workspace中的数据(暂时就直接返回debugString)
@@ -27,4 +25,5 @@ void DetectModel::processFirstDataInQueue()
 		//m_results.emplace_back(result.DebugString());
 		m_result[fileProp.outputNames[i]] = result.DebugString();
 	}
+	return tensorBatch;
 }

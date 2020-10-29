@@ -28,7 +28,7 @@ public:
 	virtual void processInBatch(std::vector<cv::Mat>& imgs);
 	virtual std::string getGroup() { return "TfModel1"; }
 
-	virtual void processFirstDataInQueue();
+	virtual int processFirstDataInQueue();
 	virtual void clearResult() {
 		m_results.clear();
 	}

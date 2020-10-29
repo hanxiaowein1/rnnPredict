@@ -84,9 +84,10 @@ void TrModel1::processInBatch(std::vector<cv::Mat>& imgs)
 	m_results.insert(m_results.end(), tempResults.begin(), tempResults.end());
 }
 
-void TrModel1::processFirstDataInQueue()
+int TrModel1::processFirstDataInQueue()
 {
-	vector<float> neededData = std::move(tensorQueue.front());
+	vector<float> neededData = std::move(tensorQueue.front().second);
+	int ret_size = tensorQueue.front().first;
 	tensorQueue.pop();
 	float* hostInputBuffer = static_cast<float*>((*mBuffer).getHostBuffer(fileProp.inputName));
 	std::memcpy(hostInputBuffer, neededData.data(), neededData.size() * sizeof(float));
@@ -95,10 +96,11 @@ void TrModel1::processFirstDataInQueue()
 		(inputProp.height * inputProp.width * inputProp.channel);
 	if (!mContext->execute(tensorBatch, mBuffer->getDeviceBindings().data()))
 	{
-		return;
+		return ret_size;
 	}
 	mBuffer->copyOutputToHost();
 	vector<model1Result> tempResults = resultOutput(tensorBatch);
 	m_results.insert(m_results.end(), tempResults.begin(), tempResults.end());
+	return ret_size;
 }
 

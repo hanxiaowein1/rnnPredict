@@ -20,7 +20,7 @@ public:
 	caffe2::Workspace work_space;
 	caffe2::NetDef initNet_, predictNet_;
 public:
-	std::queue<std::vector<float>> tensorQueue;
+	std::queue<std::pair<int, std::vector<float>>> tensorQueue;//现在改个需求，一个元素我还是需要知道原来是有多少张图像
 
 public:
 	void construct();

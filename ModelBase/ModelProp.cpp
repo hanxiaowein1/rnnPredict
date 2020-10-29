@@ -1,6 +1,7 @@
 #include "ModelProp.h"
 #include "IniConfig.h"
 #include "CommonFunction.h"
+#include "progress_record.h"
 
 void ModelInputProp::initByiniFile(std::string iniPath, std::string group)
 {
@@ -110,6 +111,7 @@ void ModelProp::processDataConcurrency(std::vector<cv::Mat>& imgs)
 {
 	if (imgs.size() == 0)
 		return;
+	int size = imgs.size();
 	clearResult();
 	std::function<void(std::vector<cv::Mat>&)> mat2tensor_fun = std::bind(&ModelProp::convertMat2NeededDataInBatch, this, std::placeholders::_1);
 	auto task = std::make_shared<std::packaged_task<void()>>
@@ -131,7 +133,8 @@ void ModelProp::processDataConcurrency(std::vector<cv::Mat>& imgs)
 		if (!checkQueueEmpty())
 		{
 			//在这个里面处理队列中的第一个数据
-			processFirstDataInQueue();
+			int step = processFirstDataInQueue();
+			addStep(step);
 		}
 		else
 		{
@@ -144,7 +147,8 @@ void ModelProp::processDataConcurrency(std::vector<cv::Mat>& imgs)
 				});
 			if (stopped.load())
 				return;
-			processFirstDataInQueue();
+			int step = processFirstDataInQueue();
+			addStep(step);
 		}
 	}
 }

@@ -94,7 +94,10 @@ void TfBase::convertMat2NeededDataInBatch(std::vector<cv::Mat>& imgs)
 	//2.取得锁
 	std::unique_lock<std::mutex> myGuard(queue_lock);
 	//3.将dstTensor放到队列里面
-	tensorQueue.emplace(std::move(dstTensor));
+	std::pair<int, tensorflow::Tensor> temp_elem;
+	temp_elem.first = imgs.size();
+	temp_elem.second = std::move(dstTensor);
+	tensorQueue.emplace(std::move(temp_elem));
 	//4.解锁
 	myGuard.unlock();
 	//5.通过条件变量通知另一个等待线程：队列里有数据了！

@@ -1,5 +1,5 @@
 #include "Model1Holder.h"
-
+#include "progress_record.h"
 Model1Holder::Model1Holder(string iniPath)
 {
 	if (IniConfig::instance().getIniString("TensorRT", "USE_TR") == "ON")
@@ -60,9 +60,12 @@ void Model1Holder::pushData(MultiImageRead& mImgRead)
 			int crop_width = int(model1Height * float(model1Mpp / slideMpp)) / std::pow(slideRatio, read_level);
 			int crop_height = int(model1Width * float(model1Mpp / slideMpp)) / std::pow(slideRatio, read_level);
 			int overlap = (int(model1Height * float(model1Mpp / slideMpp)) / 4) / std::pow(slideRatio, read_level);
+			int temp_rows = 0;
+			int temp_cols = 0;
 			vector<cv::Rect> rects = iniRects(
 				crop_width, crop_height,
-				iter->second.rows, iter->second.cols, overlap, flag_right, flag_down);
+				iter->second.rows, iter->second.cols, overlap, flag_right, flag_down,
+				temp_rows, temp_cols);
 
 			for (auto iter2 = rects.begin(); iter2 != rects.end(); iter2++) {
 				std::pair<cv::Rect, cv::Mat> rectMat;
@@ -85,7 +88,10 @@ void Model1Holder::pushData(MultiImageRead& mImgRead)
 				cv::Mat cropMat = binImg(rectCrop);
 				int cropSum = cv::sum(cropMat)[0];
 				if (cropSum <= m_crop_sum * 255)
+				{
+					addStep(1);
 					continue;
+				}
 				rect.width = model1Width;
 				rect.height = model1Height;
 				rectMat.first = rect;
@@ -111,6 +117,23 @@ vector<regionResult> Model1Holder::runModel1(MultiImageRead& mImgRead)
 	mImgRead.setReadLevel(read_level);
 	vector<cv::Rect> rects = get_rects_slide();
 	mImgRead.setRects(rects);
+	int temp_cols = 0;
+	int temp_rows = 0;
+	vector<cv::Rect> rects2 = iniRects(
+		model1Height * float(model1Mpp / slideMpp),
+		model1Width * float(model1Mpp / slideMpp),
+		slideHeight,
+		slideWidth,
+		(0.25f * model1Height) * float(model1Mpp / slideMpp),
+		true,
+		true,
+		temp_rows, 
+		temp_cols
+	);
+	setGlobalSlideHeight(temp_rows);
+	setGlobalSlideWidth(temp_cols);
+	setStage(0, rects2.size());
+
 	//按照totalThrNum来决定进入几个task
 	for (int i = 0; i < totalThrNum; i++)
 	{
@@ -205,7 +228,22 @@ bool Model1Holder::iniPara(MultiImageRead& mImgRead)
 	return true;
 }
 
-vector<cv::Rect> Model1Holder::iniRects(int sHeight, int sWidth, int height, int width, int overlap, bool flag_right, bool flag_down)
+/*
+@param:
+	sHeight   :  小块的高
+	sWidth    :  小块的宽
+	height    :  大块的高
+	width     :  大块的宽
+	overlap   :  小块的重叠
+	flag_right:  当右边有剩余时是否多裁
+	flag_down :  当下面有剩余时是否多裁
+@return:
+    vector<cv::Rect>:应该裁取的框框
+*/
+vector<cv::Rect> Model1Holder::iniRects(
+	int sHeight, int sWidth, int height, int width,
+	int overlap, bool flag_right, bool flag_down, 
+	int &rows, int &cols)
 {
 	vector<cv::Rect> rects;
 	//进行参数检查
@@ -241,6 +279,8 @@ vector<cv::Rect> Model1Holder::iniRects(int sHeight, int sWidth, int height, int
 		xStart.emplace_back(width - sWidth);
 	if (flag_down)
 		yStart.emplace_back(height - sHeight);
+	cols = xStart.size();
+	rows = yStart.size();
 	for (int i = 0; i < yStart.size(); i++) {
 		for (int j = 0; j < xStart.size(); j++) {
 			cv::Rect rect;

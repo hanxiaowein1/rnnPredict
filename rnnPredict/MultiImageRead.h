@@ -11,8 +11,8 @@
 #include "SlideRead.h"
 #include "SlideFactory.h"
 #include "opencv2/opencv.hpp"
-
-class MultiImageRead
+#include "multi_thread_queue.h"
+class MultiImageRead/* : public MultiThreadQueue<std::pair<cv::Rect, cv::Mat>>*/
 {
 private:
 	string m_slidePath;

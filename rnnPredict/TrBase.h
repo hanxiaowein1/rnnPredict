@@ -17,7 +17,7 @@ public:
 	template <typename T>
 	using myUniquePtr = std::unique_ptr<T, samplesCommon::InferDeleter>;
 public:
-	std::queue<vector<float>> tensorQueue;//每一个元素都是以batchsize个图像的集合体
+	std::queue<std::pair<int, std::vector<float>>> tensorQueue;//每一个元素都是以batchsize个图像的集合体
 	//为了简化代码，将宽高通道属性移除，全部交给ModelProp来保证
 	//samplesCommon::UffSampleParams mParams;
 	myUniquePtr<nvinfer1::IBuilder> mBuilder{ nullptr };

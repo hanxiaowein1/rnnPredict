@@ -39,7 +39,7 @@ class TfBase : public ModelProp
 private:
 	std::unique_ptr<tensorflow::Session> m_session;
 public:
-	std::queue<tensorflow::Tensor> tensorQueue;//每一个元素都是以batchsize个图像的集合体
+	std::queue<std::pair<int, tensorflow::Tensor>> tensorQueue;//每一个元素都是以batchsize个图像的集合体
 public:
 	//构造函数
 	TfBase(std::string iniPath, std::string group);

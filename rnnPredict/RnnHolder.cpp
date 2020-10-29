@@ -1,6 +1,7 @@
 #include "RnnHolder.h"
 #include <algorithm>
 #include <numeric>
+#include "progress_record.h"
 RnnHolder::RnnHolder()
 {
 }
@@ -125,5 +126,6 @@ float RnnHolder::runRnnThread2(int i, tensorflow::Tensor& inputTensor)
 	std::memcpy(tem_tensor_res.flat<float>().data(), inputTensor.flat<float>().data(),
 		inputTensor.dim_size(0) * inputTensor.dim_size(1) * sizeof(float));
 	vector<float> score = rnnHandle[i]->rnnProcess(tem_tensor_res);
+	addStep(1);
 	return score[0];
 }

@@ -62,12 +62,14 @@ void TfModel1::processInBatch(std::vector<cv::Mat>& imgs)
 	m_results.insert(m_results.end(), tempResults.begin(), tempResults.end());
 }
 
-void TfModel1::processFirstDataInQueue()
+int TfModel1::processFirstDataInQueue()
 {
-	tensorflow::Tensor tensorInput = std::move(tensorQueue.front());
+	tensorflow::Tensor tensorInput = std::move(tensorQueue.front().second);
+	int ret_size = tensorQueue.front().first;
 	tensorQueue.pop();
 	vector<tensorflow::Tensor> outputTensors;
 	output(tensorInput, outputTensors);
 	vector<model1Result> tempResults = resultOutput(outputTensors);
 	m_results.insert(m_results.end(), tempResults.begin(), tempResults.end());
+	return ret_size;
 }

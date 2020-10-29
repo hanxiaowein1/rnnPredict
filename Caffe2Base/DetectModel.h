@@ -15,7 +15,7 @@ public:
 	DetectModel(std::string group);
 	
 public:
-	void processFirstDataInQueue();
+	int processFirstDataInQueue();
 	virtual void clearResult();
 	//这个函数以后用不着了，由processFirstDataInQueue代替了.
 	virtual void processInBatch(std::vector<cv::Mat>& imgs) {

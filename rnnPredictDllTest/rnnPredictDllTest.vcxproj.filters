@@ -15,24 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="IniConfig.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ModelProp.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="progress_record.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="IniConfig.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="ModelProp.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="process_record.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

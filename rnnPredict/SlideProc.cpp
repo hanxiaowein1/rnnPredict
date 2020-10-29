@@ -1,5 +1,5 @@
 #include "SlideProc.h"
-
+#include "progress_record.h"
 #include <fstream>
 #include <numeric>
 
@@ -304,7 +304,9 @@ float SlideProc::runRnn(vector<Anno>& annos, MultiImageRead& mImgRead)
 		rect.width = model2Width * float(model2Mpp / slideMpp);
 		rects.emplace_back(rect);
 	}
-	
+	setGlobalSlideHeight(1);
+	setGlobalSlideWidth(rects.size() + 6);
+	setStage(2, rects.size() + 6);
 	//将10张图像放到model2中进行预测得到tensor
 	vector<cv::Mat> imgs;
 	m2Holder->readImageInOrder(rects, mImgRead, imgs);
@@ -653,6 +655,7 @@ bool SlideProc::runSlide(const char* slide, vector<Anno>& annos, int len)
 		return false;
 	std::cout << "read handle initialized\n";
 	iniPara(slide, mImgRead);
+
 	std::cout << "get slide info done\n";
 	m_slide = string(slide);
 	rResults.clear();
@@ -693,11 +696,14 @@ bool SlideProc::runSlide(const char* slide, vector<Anno>& annos, int len)
 	now = time(0);
 	cout << "write anno to slide: " << (char*)ctime(&now);
 	std::unique_ptr<SrpSlideRead> srp_read_handle = std::make_unique<SrpSlideRead>(slide);
-	srp_read_handle->callCleanAnno();
-	srp_read_handle->callBeginBatch();
-	srp_read_handle->callWriteAnno(pann, annos.size());
-	srp_read_handle->callEndBatch();
-	srp_read_handle->callWriteParamDouble("score", slideScore);
+	if (srp_read_handle->isSuccess())
+	{
+		srp_read_handle->callCleanAnno();
+		srp_read_handle->callBeginBatch();
+		srp_read_handle->callWriteAnno(pann, annos.size());
+		srp_read_handle->callEndBatch();
+		srp_read_handle->callWriteParamDouble("score", slideScore);
+	}
 	delete[]pann;
 	return true;
 }

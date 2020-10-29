@@ -1,5 +1,6 @@
 #include "Model2Holder.h"
 #include "IniConfig.h"
+#include "progress_record.h"
 Model2Holder::Model2Holder()
 {
 }
@@ -231,6 +232,9 @@ void Model2Holder::runModel2(MultiImageRead& mImgRead, std::vector<regionResult>
 	//placeStop是以0为起点的，所以计数时，要将其加一
 	placeStop++;
 	mImgRead.setReadLevel(0);//永恒不变，model2一直都是从level0上进行读取
+	setStage(1, rects.size());
+	setGlobalSlideHeight(1);
+	setGlobalSlideWidth(rects.size());
 	mImgRead.setQueueMaxNum(rects.size());
 	startRead(rects, mImgRead);
 

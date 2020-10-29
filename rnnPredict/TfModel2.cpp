@@ -53,13 +53,15 @@ vector<float> TfModel2::resultOutput(tensorflow::Tensor& tensor)
 	return scores;
 }
 
-void TfModel2::processFirstDataInQueue()
+int TfModel2::processFirstDataInQueue()
 {
-	tensorflow::Tensor tensorInput = std::move(tensorQueue.front());
+	tensorflow::Tensor tensorInput = std::move(tensorQueue.front().second);
+	int ret_size = tensorQueue.front().first;
 	tensorQueue.pop();
 	vector<tensorflow::Tensor> outputTensors;
 	output(tensorInput, outputTensors);
 	vector<model2Result> tempResults = resultOutput(outputTensors);
 	m_results.insert(m_results.end(), tempResults.begin(), tempResults.end());
+	return ret_size;
 }
 

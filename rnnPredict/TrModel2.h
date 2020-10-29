@@ -11,7 +11,7 @@ public:
 	TrModel2(std::string iniPath, std::string group);
 	TrModel2(std::string group);
 	virtual std::string getGroup() { return "TrModel2"; }
-	virtual void processFirstDataInQueue();
+	virtual int processFirstDataInQueue();
 	virtual void clearResult() {
 		m_results.clear();
 	}

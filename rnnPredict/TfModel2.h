@@ -12,7 +12,7 @@ public:
 	TfModel2(std::string group);
 	virtual void processInBatch(std::vector<cv::Mat> &imgs);
 	virtual std::string getGroup() { return "TfModel2"; }
-	virtual void processFirstDataInQueue();
+	virtual int processFirstDataInQueue();
 	virtual void clearResult() {
 		m_results.clear();
 	}

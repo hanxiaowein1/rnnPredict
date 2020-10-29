@@ -131,7 +131,10 @@ void TrBase::convertMat2NeededDataInBatch(std::vector<cv::Mat>& imgs)
 	transformInMemory(imgs, neededData.data());
 	//将其塞到队列里
 	std::unique_lock<std::mutex> myGuard(queue_lock);
-	tensorQueue.emplace(std::move(neededData));
+	std::pair<int, std::vector<float>> temp_elem;
+	temp_elem.first = imgs.size();
+	temp_elem.second = std::move(neededData);
+	tensorQueue.emplace(std::move(temp_elem));
 	myGuard.unlock();
 	//通过条件变量通知另一个等待线程：队列里有数据了！
 	tensor_queue_cv.notify_one();

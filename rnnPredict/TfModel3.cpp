@@ -38,12 +38,14 @@ vector<model3Result> TfModel3::resultOutput(const tensorflow::Tensor& tensor)
 	return results;
 }
 
-void TfModel3::processFirstDataInQueue()
+int TfModel3::processFirstDataInQueue()
 {
-	tensorflow::Tensor tensorInput = std::move(tensorQueue.front());
+	tensorflow::Tensor tensorInput = std::move(tensorQueue.front().second);
+	int ret_size = tensorQueue.front().first;
 	tensorQueue.pop();
 	vector<tensorflow::Tensor> outputTensors;
 	output(tensorInput, outputTensors);
 	vector<model3Result> tempResults = resultOutput(outputTensors[0]);
 	m_results.insert(m_results.end(), tempResults.begin(), tempResults.end());
+	return ret_size;
 }

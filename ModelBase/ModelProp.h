@@ -65,7 +65,7 @@ public:
 	virtual void clearResult() = 0;
 	virtual void processDataConcurrency(std::vector<cv::Mat>& imgs);
 	virtual bool checkQueueEmpty() = 0;
-	virtual void processFirstDataInQueue() = 0;
+	virtual int processFirstDataInQueue() = 0;
 };
 
 #endif
