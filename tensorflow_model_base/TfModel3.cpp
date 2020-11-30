@@ -12,18 +12,18 @@ TfModel3::TfModel3(std::string group) : TfBase(group)
 
 void TfModel3::processInBatch(std::vector<cv::Mat>& imgs)
 {
-	vector<tensorflow::Tensor> tempTensors;
+	std::vector<tensorflow::Tensor> tempTensors;
 	output(imgs, tempTensors);
-	vector<model3Result> tempResults = resultOutput(tempTensors[0]);
+	std::vector<model3Result> tempResults = resultOutput(tempTensors[0]);
 	m_results.insert(m_results.end(), tempResults.begin(), tempResults.end());
 }
 
-vector<model3Result> TfModel3::resultOutput(const tensorflow::Tensor& tensor)
+std::vector<model3Result> TfModel3::resultOutput(const tensorflow::Tensor& tensor)
 {
-	vector<model3Result> results;
+	std::vector<model3Result> results;
 	if (tensor.dims() != 2)
 	{
-		cout << "mdoel3 output size should be two\n";
+		std::cout << "mdoel3 output size should be two\n";
 		return results;
 	}
 	auto tensorValue = tensor.tensor<float, 2>();
@@ -43,9 +43,9 @@ int TfModel3::processFirstDataInQueue()
 	tensorflow::Tensor tensorInput = std::move(tensorQueue.front().second);
 	int ret_size = tensorQueue.front().first;
 	tensorQueue.pop();
-	vector<tensorflow::Tensor> outputTensors;
+	std::vector<tensorflow::Tensor> outputTensors;
 	output(tensorInput, outputTensors);
-	vector<model3Result> tempResults = resultOutput(outputTensors[0]);
+	std::vector<model3Result> tempResults = resultOutput(outputTensors[0]);
 	m_results.insert(m_results.end(), tempResults.begin(), tempResults.end());
 	return ret_size;
 }

@@ -1,6 +1,7 @@
 #include "TrModel1.h"
-
-extern std::vector<cv::Point> getRegionPoints2(cv::Mat& mask, float threshold);
+#include "model1.h"
+#include "IniConfig.h"
+#include <filesystem>
 
 TrModel1::TrModel1(std::string iniPath, std::string group):TrBase(iniPath, group)
 {
@@ -13,6 +14,7 @@ TrModel1::TrModel1(std::string group) :TrBase(group)
 {
 	inputProp.initByIniConfig("Model1");
 	unsigned long long memory = getMemory(group);
+	initializeEnginePath();
 	TrBase::build(memory, inputProp.batchsize);
 }
 
@@ -21,12 +23,16 @@ void TrModel1::constructNetwork()
 	mParser->registerInput(fileProp.inputName.c_str(), 
 		nvinfer1::Dims3(inputProp.channel, inputProp.height, inputProp.width),
 		nvuffparser::UffInputOrder::kNCHW);
-	for (auto& elem : fileProp.outputNames)
+	for (int i = 0; i < fileProp.outputNames.size() - 1; i++)
 	{
-		mParser->registerOutput(elem.c_str());
+		mParser->registerOutput(fileProp.outputNames[i].c_str());
 	}
+	//for (auto& elem : fileProp.outputNames)
+	//{
+	//	mParser->registerOutput(elem.c_str());
+	//}
 	//在添上两层，一层shuffle layer，一层softmax layer
-	mParser->parse(fileProp.filepath.c_str(), *mNetwork, nvinfer1::DataType::kFLOAT);
+	mParser->parse(fileProp.filepath.c_str(), *mNetwork);
 	ITensor* outputTensor = mNetwork->getOutput(1);
 	auto shuffle_layer = mNetwork->addShuffle(*outputTensor);
 	Permutation permutation;
@@ -39,8 +45,8 @@ void TrModel1::constructNetwork()
 	permutation.order[2] = 1;
 	shuffle_layer->setFirstTranspose(permutation);
 	auto softmax_layer = mNetwork->addSoftMax(*shuffle_layer->getOutput(0));
-	softmax_layer->getOutput(0)->setName("softmax/output");
-	fileProp.outputNames.emplace_back("softmax/output");
+	softmax_layer->getOutput(0)->setName(fileProp.outputNames[2].c_str());
+	//fileProp.outputNames.emplace_back("softmax/output");
 	mNetwork->markOutput(*softmax_layer->getOutput(0));
 }
 
@@ -104,3 +110,19 @@ int TrModel1::processFirstDataInQueue()
 	return ret_size;
 }
 
+void TrModel1::initializeEnginePath()
+{
+	if (IniConfig::instance().getIniString("TensorRT", "quantize") == "ON") {
+		m_engine_path = "./engine/model1_fp16.engine";
+	}
+	else {
+		m_engine_path = "./engine/model1.engine";
+	}
+}
+
+bool TrModel1::checkModelChange()
+{
+	if (IniConfig::instance().getIniString("TrModel1", "engine_change_flag") == "False")
+		return false;
+	return true;
+}

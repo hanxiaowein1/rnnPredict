@@ -1,6 +1,7 @@
 #include "SlideProc.h"
 #include "progress_record.h"
 #include <fstream>
+#include <filesystem>
 #include <numeric>
 
 SlideProc::SlideProc(const char* iniPath)
@@ -292,6 +293,11 @@ vector<Anno> SlideProc::regionProposal(int recom)
 	return annos;
 }
 
+void SlideProc::getM2Imgs(std::vector<cv::Rect> rects, std::vector<cv::Mat>& imgs, MultiImageRead& mImgRead)
+{
+	m2Holder->readImageInOrder(rects, mImgRead, imgs);
+}
+
 float SlideProc::runRnn(vector<Anno>& annos, MultiImageRead& mImgRead)
 {
 	//传入10个点，然后在全图上进行抠图
@@ -310,6 +316,25 @@ float SlideProc::runRnn(vector<Anno>& annos, MultiImageRead& mImgRead)
 	//将10张图像放到model2中进行预测得到tensor
 	vector<cv::Mat> imgs;
 	m2Holder->readImageInOrder(rects, mImgRead, imgs);
+	//根据lsb的需要，保存前10张切片图像
+	if (IniConfig::instance().getIniString("Debug", "flag") == "ON")
+	{
+		std::string save_m2_path = IniConfig::instance().getIniString("DebugVar", "save_m2_path");
+		std::string slide_name = getFileNamePrefix(&m_slide);
+		std::string the_end_save_path = save_m2_path + slide_name + "\\lsb_m2\\";
+		if (!std::filesystem::exists(the_end_save_path))
+		{
+			std::filesystem::create_directories(the_end_save_path);
+		}
+		//然后将这十张图像保存到这个文件夹里面
+		int save_count = imgs.size() >= 10 ? 10 : imgs.size();
+		for (int i = 0; i < save_count; i++)
+		{
+			std::string save_img_name = std::to_string(i) + "_" + std::to_string(rects[i].x) + "_" + std::to_string(rects[i].y) + ".tif";
+			cv::imwrite(the_end_save_path + save_img_name, imgs[i]);
+		}
+	}
+
 	vector<model2Result> tempResults;
 	m2Holder->model2Process(imgs, tempResults);
 
@@ -408,7 +433,7 @@ bool SlideProc::checkFlags2()
 
 void SlideProc::saveResult3(string savePath, string saveName)
 {
-	std::ofstream out(savePath + saveName + ".txt");
+	std::ofstream out(savePath + "\\" + saveName + ".txt");
 	string saveString = to_string(slideScore);
 	out << saveString;
 	out.close();

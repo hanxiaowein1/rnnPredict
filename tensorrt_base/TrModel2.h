@@ -21,8 +21,8 @@ private:
 	bool processOutput2(int size, std::vector<std::vector<float>>& tensors);
 	vector<model2Result> resultOutput(int size);
 	virtual void processInBatch(std::vector<cv::Mat>& imgs);
-
-	
+	virtual void initializeEnginePath();
+	virtual bool checkModelChange();
 };
 
 #endif

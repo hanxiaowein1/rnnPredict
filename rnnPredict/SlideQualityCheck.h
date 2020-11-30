@@ -7,7 +7,7 @@
 class SlideQualityCheck
 {
 private:
-	void process2(string slidePath, string origin);
+	void process2(std::string slidePath, std::string origin);
 	float myLaplacian(cv::Mat& img, cv::Mat& binImg, int thre_col = 20);
 	//double computeLaplacian(cv::Mat& img, nucSegResult& result, int count, int& lap_nums);
 

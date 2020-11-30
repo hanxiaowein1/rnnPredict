@@ -45,7 +45,7 @@
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -70,7 +70,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>D:\ThirdParty\opencv341\build\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\include;D:\ThirdParty\Eigen;D:\libraryBuild\SdpcSDK\SdpcSDK;D:\libraryBuild\openslide-win64-20201024-local\include\openslide;D:\ThirdParty\TensorRT-6.0.1.5\include;D:\ThirdParty\TensorRT-6.0.1.5\samples\common;D:\ThirdParty\TensorRT-6.0.1.5\samples\common\windows;D:\Programmer\C++\LibraryPersonal\SlideFactory\SlideFactory;D:\Programmer\C++\LibraryPersonal\Library\Common;D:\libraryBuild\pytorch;D:\libraryBuild\tensorflow1.10.0_build;D:\library\tensorflow-1.10.0;D:\library\tensorflow-1.10.0\third_party\gpus;D:\library\tensorflow-1.10.0\tensorflow;D:\libraryBuild\tensorflow1.10.0_build\nsync\install\include;D:\libraryBuild\tensorflow1.10.0_build\grpc\src\grpc\include;D:\libraryBuild\tensorflow1.10.0_build\protobuf\src\protobuf\src;../ModelBase;D:\Programmer\C++\LibraryPersonal\Library\my_multithread;$(IncludePath)</IncludePath>
+    <IncludePath>D:\ThirdParty\opencv341\build\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\include;D:\ThirdParty\Eigen;D:\libraryBuild\SdpcSDK\SdpcSDK;D:\libraryBuild\openslide-win64-20201024-local\include\openslide;D:\ThirdParty\TensorRT-6.0.1.5\include;D:\ThirdParty\TensorRT-6.0.1.5\samples\common;D:\ThirdParty\TensorRT-6.0.1.5\samples\common\windows;D:\Programmer\C++\LibraryPersonal\SlideFactory\SlideFactory;D:\Programmer\C++\LibraryPersonal\Library\Common;D:\libraryBuild\pytorch;D:\libraryBuild\tensorflow1.10.0_build;D:\library\tensorflow-1.10.0;D:\library\tensorflow-1.10.0\third_party\gpus;D:\library\tensorflow-1.10.0\tensorflow;D:\libraryBuild\tensorflow1.10.0_build\nsync\install\include;D:\libraryBuild\tensorflow1.10.0_build\grpc\src\grpc\include;D:\libraryBuild\tensorflow1.10.0_build\protobuf\src\protobuf\src;../ModelBase;D:\Programmer\C++\LibraryPersonal\Library\my_multithread;..\tensorflow_model_base;../tensorrt_base;$(IncludePath)</IncludePath>
     <LibraryPath>D:\ThirdParty\opencv341\build\x64\vc14\lib;D:\libraryBuild\SdpcSDK\x64\Release;D:\libraryBuild\openslide-win64-20201024-local\lib;D:\Programmer\C++\LibraryPersonal\SlideFactory\x64\Release;D:\Programmer\C++\LibraryPersonal\Common\x64\Release;D:\libraryBuild\tensorflow1.10.0_build\Release;D:\libraryBuild\tensorflow1.10.0_build\protobuf\src\protobuf\Release;../x64/Release;D:\Programmer\C++\LibraryPersonal\Library\x64\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -111,12 +111,13 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NOMINMAX;COMPILER_MSVC;_RNNFUNC_EXPORT_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NOMINMAX;COMPILER_MSVC;_RNNFUNC_EXPORT_;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>tensorflow.lib;libprotobuf.lib;opencv_world341.lib;SdpcSDK.lib;libopenslide.lib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\lib\x64\*.lib;D:\ThirdParty\TensorRT-6.0.1.5\lib\*.lib;SlideFactory.lib;Common.lib;ModelBase.lib;my_multithread.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>tensorflow.lib;libprotobuf.lib;opencv_world341.lib;SdpcSDK.lib;libopenslide.lib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\lib\x64\*.lib;D:\ThirdParty\TensorRT-6.0.1.5\lib\*.lib;SlideFactory.lib;Common.lib;ModelBase.lib;my_multithread.lib;tensorflow_model_base.lib;tensorrt_base.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -135,18 +136,10 @@
     <ClCompile Include="SlideProc_old.cpp" />
     <ClCompile Include="SlideProc_stable.cpp" />
     <ClCompile Include="SlideQualityCheck.cpp" />
-    <ClCompile Include="TfBase.cpp" />
-    <ClCompile Include="TfModel1.cpp" />
-    <ClCompile Include="TfModel2.cpp" />
-    <ClCompile Include="TfModel3.cpp" />
-    <ClCompile Include="TfRnn.cpp" />
     <ClCompile Include="tinystr.cpp" />
     <ClCompile Include="tinyxml.cpp" />
     <ClCompile Include="tinyxmlerror.cpp" />
     <ClCompile Include="tinyxmlparser.cpp" />
-    <ClCompile Include="TrBase.cpp" />
-    <ClCompile Include="TrModel1.cpp" />
-    <ClCompile Include="TrModel2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DetectDll.h" />
@@ -160,18 +153,9 @@
     <ClInclude Include="RnnHolder.h" />
     <ClInclude Include="SlideProc.h" />
     <ClInclude Include="SlideQualityCheck.h" />
-    <ClInclude Include="TfBase.h" />
-    <ClInclude Include="TfModel1.h" />
-    <ClInclude Include="TfModel2.h" />
-    <ClInclude Include="TfModel3.h" />
-    <ClInclude Include="TfRnn.h" />
     <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="tinystr.h" />
     <ClInclude Include="tinyxml.h" />
-    <ClInclude Include="TrBase.h" />
-    <ClInclude Include="TrModel1.h" />
-    <ClInclude Include="TrModel2.h" />
-    <ClInclude Include="types.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="rnnPredict.rc" />

@@ -29,15 +29,6 @@ struct PointScore
 	float score;
 };
 
-//写到srp文件里的信息
-//typedef struct {
-//	int id;
-//	int x;
-//	int y;
-//	int type;
-//	double score;
-//}Anno;
-
 struct model3Result
 {
 	enum Type { TYPICAL = 0, ATYPICAL, NPLUS };

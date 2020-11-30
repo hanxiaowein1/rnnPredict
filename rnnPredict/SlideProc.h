@@ -94,6 +94,7 @@ private:
 	//推荐10个区域(选取前10个区域写入到srp文件里面)
 	vector<Anno> regionProposal(int recom);
 	float runRnn(vector<Anno>& anno, MultiImageRead& mImgRead);
+	void getM2Imgs(std::vector<cv::Rect> rects, std::vector<cv::Mat>& imgs, MultiImageRead& mImgRead);
 	void sortResultsByCoor(vector<regionResult>& results);
 	void sortResultsByScore(vector<regionResult>& results);
 	void sortResultsByScore(vector<PointScore>& pss);

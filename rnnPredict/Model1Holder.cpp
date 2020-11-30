@@ -28,18 +28,15 @@ void Model1Holder::model1Config(string iniPath)
 	{
 		model1Handle.first = std::make_unique<TfModel1>("TfModel1");
 		model1Handle.first->createThreadPool();
-		model1Mpp = model1Handle.first->inputProp.mpp;
-		model1Height = model1Handle.first->inputProp.height;
-		model1Width = model1Handle.first->inputProp.width;
 	}
 	else
 	{
 		model1Handle.second = std::make_unique<TrModel1>("TrModel1");
 		model1Handle.second->createThreadPool();
-		model1Mpp = model1Handle.second->inputProp.mpp;
-		model1Height = model1Handle.second->inputProp.height;
-		model1Width = model1Handle.second->inputProp.width;
 	}
+	model1Mpp = IniConfig::instance().getIniDouble("Model1", "mpp");
+	model1Height = IniConfig::instance().getIniDouble("Model1", "height");
+	model1Width = IniConfig::instance().getIniDouble("Model1", "width");
 }
 
 void Model1Holder::pushData(MultiImageRead& mImgRead)

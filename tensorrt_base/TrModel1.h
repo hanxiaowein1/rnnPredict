@@ -25,6 +25,8 @@ private:
 	vector<model1Result> resultOutput(int size);
 	bool processOutput(int size, vector<std::pair<float, cv::Mat>>& pairElems);
 	virtual void processInBatch(std::vector<cv::Mat>& imgs);	
+	virtual void initializeEnginePath();
+	virtual bool checkModelChange();
 };
 
 #endif

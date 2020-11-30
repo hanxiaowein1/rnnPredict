@@ -1,13 +1,13 @@
 #include "progress_record.h"
 #include <iostream>
 #include <map>
-using namespace std;
 
 int stage = -1;
 std::map<int, Record> records;
 UpdateProgressFunc progress_fun = nullptr;
 int global_slide_width = 0;
 int global_slide_height = 0;
+bool wrong_flag = false;
 
 void setGlobalSlideWidth(int width)
 {
@@ -37,10 +37,15 @@ void addStep(int step)
 	if (records.find(stage) != records.end())
 	{
 		records[stage].progress = records[stage].progress + step;
+
 	}
 	else
 	{
-		std::cerr << "stage has not been initialized!\n";
+		if (!wrong_flag)
+		{
+			std::cerr << "stage has not been initialized!\n";
+		}
+		wrong_flag = true;
 	}
 	if (progress_fun != nullptr)
 	{

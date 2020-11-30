@@ -1,9 +1,9 @@
 #include "Model3Holder.h"
-
+#include "IniConfig.h"
 Model3Holder::Model3Holder()
 {}
 
-Model3Holder::Model3Holder(string iniPath)
+Model3Holder::Model3Holder(std::string iniPath)
 {
 	model3Config(iniPath);
 }
@@ -26,14 +26,14 @@ void Model3Holder::initPara(MultiImageRead& mImgRead)
 	mImgRead.getSlideMpp(slideMpp);
 }
 
-void Model3Holder::model3Config(string iniPath)
+void Model3Holder::model3Config(std::string iniPath)
 {
 	//model3Handle = std::make_unique<TfModel3>(iniPath, "TfModel3");
 	model3Handle = std::make_unique<TfModel3>("TfModel3");
 	model3Handle->createThreadPool();
-	model3Height = model3Handle->inputProp.height;
-	model3Width = model3Handle->inputProp.width;
-	model3Mpp = model3Handle->inputProp.mpp;
+	model3Mpp = IniConfig::instance().getIniDouble("Model3", "mpp");
+	model3Height = IniConfig::instance().getIniDouble("Model3", "height");
+	model3Width = IniConfig::instance().getIniDouble("Model3", "width");
 }
 
 //void Model3Holder::createThreadPool(int threadNum)
@@ -169,7 +169,7 @@ cv::Point Model3Holder::rect2Point(int x, int y, float radius)
 	return point;
 }
 
-vector<PointScore> Model3Holder::model3Recom(vector<std::pair<cv::Rect, model3Result>>& xyResults)
+std::vector<PointScore> Model3Holder::model3Recom(std::vector<std::pair<cv::Rect, model3Result>>& xyResults)
 {
 	auto lambda = [](std::pair<cv::Rect, model3Result> result1, std::pair<cv::Rect, model3Result> result2)->bool {
 		if (result1.second.type == result2.second.type)
@@ -189,7 +189,7 @@ vector<PointScore> Model3Holder::model3Recom(vector<std::pair<cv::Rect, model3Re
 		}
 	};
 	std::sort(xyResults.begin(), xyResults.end(), lambda);
-	vector<PointScore> retPs;
+	std::vector<PointScore> retPs;
 	//现有策略是只推荐出典型区域
 	float radius = model3Width / 2 * float(model3Mpp / slideMpp);
 	for (int i = 0; i < xyResults.size(); i++)
@@ -206,11 +206,11 @@ vector<PointScore> Model3Holder::model3Recom(vector<std::pair<cv::Rect, model3Re
 	return retPs;
 }
 
-vector<PointScore> Model3Holder::runModel3(MultiImageRead& mImgRead, vector<Anno> &annos)
+std::vector<PointScore> Model3Holder::runModel3(MultiImageRead& mImgRead, std::vector<Anno> &annos)
 {
 	initPara(mImgRead);
 	mImgRead.setGammaFlag(false);
-	vector<cv::Rect> rects;
+	std::vector<cv::Rect> rects;
 	for (int i = 0; i < annos.size(); i++) {
 		cv::Rect rect;
 		rect.x = annos[i].x - model3Width / 2 * float(model3Mpp / slideMpp);
@@ -221,8 +221,8 @@ vector<PointScore> Model3Holder::runModel3(MultiImageRead& mImgRead, vector<Anno
 	}
 	mImgRead.setRects(rects);
 	
-	vector<std::pair<cv::Rect, cv::Mat>> rectMats;
-	vector<std::pair<cv::Rect, cv::Mat>> tmpRectMats;
+	std::vector<std::pair<cv::Rect, cv::Mat>> rectMats;
+	std::vector<std::pair<cv::Rect, cv::Mat>> tmpRectMats;
 
 	for (int i = 0; i < totalThrNum; i++)
 	{
@@ -244,15 +244,15 @@ vector<PointScore> Model3Holder::runModel3(MultiImageRead& mImgRead, vector<Anno
 		tmpRectMats.clear();
 	}
 
-	vector<cv::Mat> imgs;
-	vector<std::pair<cv::Rect, model3Result>> xyResults;
+	std::vector<cv::Mat> imgs;
+	std::vector<std::pair<cv::Rect, model3Result>> xyResults;
 	for (auto& elem : rectMats)
 	{
 		imgs.emplace_back(std::move(elem.second));
 	}
 	//开始预测50张图像
 	model3Handle->processDataConcurrency(imgs);
-	vector<model3Result> results = model3Handle->m_results;
+	std::vector<model3Result> results = model3Handle->m_results;
 	for (auto& elem : results)
 	{
 		elem.iniType();

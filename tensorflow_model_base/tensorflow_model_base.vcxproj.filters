@@ -15,33 +15,36 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="IniConfig.h">
+    <ClInclude Include="TfBase.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="ModelProp.h">
+    <ClInclude Include="TfModel1.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="progress_record.h">
+    <ClInclude Include="TfModel2.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="types.h">
+    <ClInclude Include="TfModel3.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="model1.h">
+    <ClInclude Include="TfRnn.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="IniConfig.cpp">
+    <ClCompile Include="TfBase.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="ModelProp.cpp">
+    <ClCompile Include="TfModel1.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="process_record.cpp">
+    <ClCompile Include="TfModel2.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="model1.cpp">
+    <ClCompile Include="TfModel3.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="TfRnn.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

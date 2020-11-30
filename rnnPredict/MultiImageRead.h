@@ -15,7 +15,7 @@
 class MultiImageRead/* : public MultiThreadQueue<std::pair<cv::Rect, cv::Mat>>*/
 {
 private:
-	string m_slidePath;
+	std::string m_slidePath;
 
 	std::condition_variable cv_queue_has_elem;//如果有队列有元素的条件变量
 	std::condition_variable cv_queue_overflow;//如果队列元素太多的条件变量
@@ -55,7 +55,7 @@ public:
 	MultiImageRead(const char* slidePath);
 	~MultiImageRead();
 	std::unique_ptr<SlideRead> getSingleReadHandleAndReleaseOthers();
-	void popQueueWithoutLock(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
+	void popQueueWithoutLock(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
 	void createThreadPool();
 	//i表示取哪一个SlideRead
 	void readTask(int i, cv::Rect rect);

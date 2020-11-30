@@ -15,7 +15,7 @@ void clear(std::queue<std::pair<cv::Rect, cv::Mat>>& q)
 
 MultiImageRead::MultiImageRead(const char* slidePath)
 {
-	m_slidePath = string(slidePath);
+	m_slidePath = std::string(slidePath);
 
 	stopped.store(false);
 }
@@ -30,7 +30,7 @@ MultiImageRead::~MultiImageRead()
 		if (thread.joinable())
 			thread.join();
 	}
-	cout << "所有线程已经结束\n";
+	std::cout << "所有线程已经结束\n";
 }
 
 
@@ -147,11 +147,11 @@ void MultiImageRead::readTask(int i, cv::Rect rect)
 	if (readTaskCount.load() == totalTaskCount.load())
 	{
 		time_t now = time(0);
-		cout << "read image to buffer complete: " << (char*)ctime(&now);
+		std::cout << "read image to buffer complete: " << (char*)ctime(&now);
 	}
 }
 
-void MultiImageRead::popQueueWithoutLock(vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
+void MultiImageRead::popQueueWithoutLock(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats)
 {
 	int size = data_queue.size();
 	for (int i = 0; i < size; i++)
@@ -220,6 +220,7 @@ bool MultiImageRead::popQueue(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMat
 			{
 				//如果有线程在运行，那么在锁住队列，等待人来唤醒
 				data_lock.lock();
+				using namespace std;
 				cv_queue_has_elem.wait_for(data_lock, 1000ms, [this] {
 					if (data_queue.size() > 0 || stopped.load()) {
 						return true;

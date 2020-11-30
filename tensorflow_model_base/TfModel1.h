@@ -18,7 +18,7 @@ class TfModel1 : public TfBase
 public:
 	std::vector<model1Result> m_results;
 private:
-	vector<model1Result> resultOutput(vector<tensorflow::Tensor>& tensors);
+	std::vector<model1Result> resultOutput(std::vector<tensorflow::Tensor>& tensors);
 	void TensorToMat(tensorflow::Tensor mask, cv::Mat* dst);
 
 public:

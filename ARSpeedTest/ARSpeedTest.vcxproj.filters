@@ -15,34 +15,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="IniConfig.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ModelProp.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="progress_record.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="types.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="model1.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ar.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ar_py.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="IniConfig.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="ModelProp.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="process_record.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="model1.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
+    <ClInclude Include="ar.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ar_py.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

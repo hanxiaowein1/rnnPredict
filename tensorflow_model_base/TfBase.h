@@ -32,8 +32,6 @@
 #include <tensorflow/core/graph/default_device.h>
 #include <tensorflow/core/graph/graph_def_builder.h>
 
-using namespace std;
-
 class TfBase : public ModelProp
 {
 private:
@@ -51,7 +49,7 @@ public:
 	//传入cv::Mat，得到Tensor输出
 	void output(std::vector<cv::Mat>& imgs, std::vector<tensorflow::Tensor>& Output);
 	//传入Tensor输入，得到Tensor输出(其中tensorInput是batchsize个图像的集合体)
-	void output(tensorflow::Tensor& tensorInput, vector<tensorflow::Tensor>& tensorOutput);
+	void output(tensorflow::Tensor& tensorInput, std::vector<tensorflow::Tensor>& tensorOutput);
 
 	virtual void convertMat2NeededDataInBatch(std::vector<cv::Mat>& imgs);
 	virtual bool checkQueueEmpty();

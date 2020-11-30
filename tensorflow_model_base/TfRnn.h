@@ -6,14 +6,14 @@
 class TfRnn : public TfBase
 {
 public:
-	TfRnn(string iniPath, string group);
+	TfRnn(std::string iniPath, std::string group);
 	TfRnn(std::string group);
 	~TfRnn();
 	//输入为model2的输出
-	vector<float> rnnProcess(vector<vector<float>>& input);
-	vector<float> rnnProcess(tensorflow::Tensor& tensorInput);	
+	std::vector<float> rnnProcess(std::vector<std::vector<float>>& input);
+	std::vector<float> rnnProcess(tensorflow::Tensor& tensorInput);
 private:
-	vector<float> resultOutput(tensorflow::Tensor& tensor);
+	std::vector<float> resultOutput(tensorflow::Tensor& tensor);
 	virtual void clearResult() {}
 	virtual void convertMat2NeededDataInBatch(std::vector<cv::Mat>& imgs) {}
 	virtual int processFirstDataInQueue() { return 1; }

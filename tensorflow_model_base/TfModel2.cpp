@@ -12,16 +12,16 @@ TfModel2::TfModel2(std::string group) : TfBase(group)
 
 void TfModel2::processInBatch(std::vector<cv::Mat> &imgs)
 {
-	vector<tensorflow::Tensor> tempTensors;
+	std::vector<tensorflow::Tensor> tempTensors;
 	output(imgs, tempTensors);
-	vector<model2Result> tempResults = resultOutput(tempTensors);
+	std::vector<model2Result> tempResults = resultOutput(tempTensors);
 	m_results.insert(m_results.end(), tempResults.begin(), tempResults.end());
 }
 
-vector<model2Result> TfModel2::resultOutput(vector<tensorflow::Tensor>& tensors)
+std::vector<model2Result> TfModel2::resultOutput(std::vector<tensorflow::Tensor>& tensors)
 {
-	vector<model2Result> tempResults;
-	vector<float> scores = resultOutput(tensors[0]);
+	std::vector<model2Result> tempResults;
+	std::vector<float> scores = resultOutput(tensors[0]);
 	auto tensorValue = tensors[1].tensor<float, 2>();
 	int tempSize = scores.size();
 	const float* buffer_start = tensors[1].flat<float>().data();
@@ -36,12 +36,12 @@ vector<model2Result> TfModel2::resultOutput(vector<tensorflow::Tensor>& tensors)
 	return tempResults;
 }
 
-vector<float> TfModel2::resultOutput(tensorflow::Tensor& tensor)
+std::vector<float> TfModel2::resultOutput(tensorflow::Tensor& tensor)
 {
-	vector<float> scores;
+	std::vector<float> scores;
 	if (tensor.dims() != 2)
 	{
-		cout << "model2 output size should be two...\n";
+		std::cout << "model2 output size should be two...\n";
 		return scores;
 	}
 	auto scoreTensor = tensor.tensor<float, 2>();
@@ -58,9 +58,9 @@ int TfModel2::processFirstDataInQueue()
 	tensorflow::Tensor tensorInput = std::move(tensorQueue.front().second);
 	int ret_size = tensorQueue.front().first;
 	tensorQueue.pop();
-	vector<tensorflow::Tensor> outputTensors;
+	std::vector<tensorflow::Tensor> outputTensors;
 	output(tensorInput, outputTensors);
-	vector<model2Result> tempResults = resultOutput(outputTensors);
+	std::vector<model2Result> tempResults = resultOutput(outputTensors);
 	m_results.insert(m_results.end(), tempResults.begin(), tempResults.end());
 	return ret_size;
 }

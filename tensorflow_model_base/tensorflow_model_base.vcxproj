@@ -18,23 +18,10 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="IniConfig.cpp" />
-    <ClCompile Include="model1.cpp" />
-    <ClCompile Include="ModelProp.cpp" />
-    <ClCompile Include="process_record.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="IniConfig.h" />
-    <ClInclude Include="model1.h" />
-    <ClInclude Include="ModelProp.h" />
-    <ClInclude Include="progress_record.h" />
-    <ClInclude Include="types.h" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{7FC4C3F8-7C70-49D5-83FD-C7954C5EE5AB}</ProjectGuid>
-    <RootNamespace>ModelBase</RootNamespace>
+    <ProjectGuid>{3062DED4-799F-434E-8A9C-766857F5FE03}</ProjectGuid>
+    <RootNamespace>tensorflowmodelbase</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -62,7 +49,7 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -84,8 +71,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>D:\ThirdParty\opencv341\build\include;D:\Programmer\C++\LibraryPersonal\Library\Common;D:\Programmer\C++\LibraryPersonal\Library\my_multithread;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\ThirdParty\opencv341\build\x64\vc14\lib;D:\Programmer\C++\LibraryPersonal\Library\x64\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\ThirdParty\opencv341\build\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\include;D:\ThirdParty\Eigen;D:\libraryBuild\tensorflow1.10.0_build;D:\library\tensorflow-1.10.0;D:\library\tensorflow-1.10.0\third_party\gpus;D:\library\tensorflow-1.10.0\tensorflow;D:\libraryBuild\tensorflow1.10.0_build\nsync\install\include;D:\libraryBuild\tensorflow1.10.0_build\grpc\src\grpc\include;D:\libraryBuild\tensorflow1.10.0_build\protobuf\src\protobuf\src;..\ModelBase;D:\Programmer\C++\LibraryPersonal\Library\my_multithread;D:\Programmer\C++\LibraryPersonal\Library\Common;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\ThirdParty\opencv341\build\x64\vc14\lib;D:\libraryBuild\tensorflow1.10.0_build\Release;D:\libraryBuild\tensorflow1.10.0_build\protobuf\src\protobuf\Release;..\x64\Release;D:\Programmer\C++\LibraryPersonal\Library\x64\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -102,7 +89,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_SILENCE_CXX17_NEGATORS_DEPRECATION_WARNING;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
@@ -111,6 +98,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>tensorflow.lib;libprotobuf.lib;opencv_world341.lib;ModelBase.lib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\lib\x64\*.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -153,6 +141,20 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="TfBase.h" />
+    <ClInclude Include="TfModel1.h" />
+    <ClInclude Include="TfModel2.h" />
+    <ClInclude Include="TfModel3.h" />
+    <ClInclude Include="TfRnn.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="TfBase.cpp" />
+    <ClCompile Include="TfModel1.cpp" />
+    <ClCompile Include="TfModel2.cpp" />
+    <ClCompile Include="TfModel3.cpp" />
+    <ClCompile Include="TfRnn.cpp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -1,6 +1,8 @@
 #include <iostream>
 #include <algorithm>
 #include <numeric>
+#include <filesystem>
+#include <windows.h>
 #include "commonFunction.h"
 #include "SlideProc.h"
 #include "DLLManager.h"
@@ -381,38 +383,62 @@ void startRun(const char* iniPath)
 {
 	DLLManager manager;
 	SlideProc slideProc(iniPath);
-	//char slidePath[MAX_PATH];
-	//char savePath[MAX_PATH];
-	//char slidePath_n[] = "slidePath";
-	//char savePath_n[] = "savePath";
-	//char group[] = "Path";
-	//GetPrivateProfileString(group, slidePath_n, "default", slidePath, MAX_PATH, iniPath);
-	//GetPrivateProfileString(group, savePath_n, "default", savePath, MAX_PATH, iniPath);
 	std::string slidePath = IniConfig::instance().getIniString("Path", "slidePath");
 	std::string savePath = IniConfig::instance().getIniString("Path", "savePath");
-	createDirRecursive(savePath);
-	vector<string> sdpcList;
-	vector<string> srpList;
-	vector<string> mrxsList;
-	vector<string> svsList;
-	getFiles(slidePath, sdpcList, "sdpc");
-	getFiles(slidePath, srpList, "srp");
-	getFiles(slidePath, svsList, "svs");
-	getFiles(slidePath, mrxsList, "mrxs");
-	vector<string> xmlList;
-	getFiles(savePath, xmlList, "xml");
-	filterList(sdpcList, xmlList);
-	filterList(srpList, xmlList);
-	filterList(svsList, xmlList);
-	filterList(mrxsList, xmlList);
+	if (std::filesystem::exists(savePath)) {
+		std::filesystem::create_directories(savePath);
+	}
+	//递归的运算所有切片
+	std::vector<std::string> slide_suffixs{ "sdpc", "srp", "svs", "mrxs" };
+	std::vector<std::string> slide_dirs;
+	std::vector<std::string> save_dirs;
+	for (auto& p : std::filesystem::recursive_directory_iterator(slidePath)) {
+		if (std::filesystem::is_directory(p)) {
+			slide_dirs.emplace_back(p.path().string());
+		}
+	}
+	for (auto dir : slide_dirs)
+	{
+		auto position = dir.find(slidePath);
+		std::string dir_cp = dir;
+		dir_cp.erase(position, slidePath.size());
+		std::string temp_save_path = savePath + dir_cp;
+		if (!std::filesystem::exists(temp_save_path)){
+			std::filesystem::create_directories(temp_save_path);
+		}
+		std::vector<std::string> all_slides;
+		for (auto slide_suffix : slide_suffixs)
+		{
+			std::vector<std::string> temp_slides = getFilesBySuffix(dir, slide_suffix);
+			all_slides.insert(all_slides.end(), temp_slides.begin(), temp_slides.end());
+		}
+		std::vector<std::string> xml_list = getFilesBySuffix(temp_save_path, "xml"); 
+		filterList(all_slides, xml_list);
+		subTask(all_slides, slideProc, temp_save_path);
+	}
 
-	vector<string> slideList;
-	slideList.insert(slideList.end(), sdpcList.begin(), sdpcList.end());
-	slideList.insert(slideList.end(), srpList.begin(), srpList.end());
-	slideList.insert(slideList.end(), mrxsList.begin(), mrxsList.end());
-	slideList.insert(slideList.end(), svsList.begin(), svsList.end());
+	//vector<string> sdpcList;
+	//vector<string> srpList;
+	//vector<string> mrxsList;
+	//vector<string> svsList;
+	//getFiles(slidePath, sdpcList, "sdpc");
+	//getFiles(slidePath, srpList, "srp");
+	//getFiles(slidePath, svsList, "svs");
+	//getFiles(slidePath, mrxsList, "mrxs");
+	//vector<string> xmlList;
+	//getFiles(savePath, xmlList, "xml");
+	//filterList(sdpcList, xmlList);
+	//filterList(srpList, xmlList);
+	//filterList(svsList, xmlList);
+	//filterList(mrxsList, xmlList);
 
-	subTask(slideList, slideProc, savePath);
+	//vector<string> slideList;
+	//slideList.insert(slideList.end(), sdpcList.begin(), sdpcList.end());
+	//slideList.insert(slideList.end(), srpList.begin(), srpList.end());
+	//slideList.insert(slideList.end(), mrxsList.begin(), mrxsList.end());
+	//slideList.insert(slideList.end(), svsList.begin(), svsList.end());
+
+	//subTask(slideList, slideProc, savePath);
 }
 
 //测试一下Caffe2Base.dll
@@ -443,8 +469,9 @@ int main(int args, char* argv[])
 	else if (args == 1)
 	{
 		_putenv_s("CUDA_VISIBLE_DEVICES", "0");
-		string iniPath = "../x64/Release/config.ini";
+		string iniPath = "./config.ini";
 		setIniPath(iniPath);
+		cout << IniConfig::instance().getIniString("TfModel1", "path") << endl;
 		DWORD dirType = GetFileAttributesA(iniPath.c_str());
 		if (dirType == INVALID_FILE_ATTRIBUTES) {
 			cout << "ini file doesn't exist!" << endl;

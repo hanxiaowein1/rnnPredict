@@ -1,14 +1,13 @@
 #include "TfModel1.h"
+#include "model1.h"
 
-extern std::vector<cv::Point> getRegionPoints2(cv::Mat& mask, float threshold);
-
-TfModel1::TfModel1(string iniPath, string group):
+TfModel1::TfModel1(std::string iniPath, std::string group):
 	TfBase(iniPath, group)
 {
 	inputProp.initByiniFile(iniPath, "Model1");
 }
 
-TfModel1::TfModel1(string group) : TfBase(group)
+TfModel1::TfModel1(std::string group) : TfBase(group)
 {
 	inputProp.initByIniConfig("Model1");
 }
@@ -18,12 +17,12 @@ TfModel1::~TfModel1()
 
 }
 
-vector<model1Result> TfModel1::resultOutput(vector<tensorflow::Tensor>& tensors)
+std::vector<model1Result> TfModel1::resultOutput(std::vector<tensorflow::Tensor>& tensors)
 {
-	vector<model1Result> retResults;
+	std::vector<model1Result> retResults;
 	if (tensors.size() != 2)
 	{
-		cout << "model1Base::output: tensors size should be 2\n";
+		std::cout << "model1Base::output: tensors size should be 2\n";
 		return retResults;
 	}
 	auto scores = tensors[0].tensor<float, 2>();
@@ -56,9 +55,9 @@ void TfModel1::TensorToMat(tensorflow::Tensor mask, cv::Mat* dst)
 
 void TfModel1::processInBatch(std::vector<cv::Mat>& imgs)
 {
-	vector<tensorflow::Tensor> tempTensors;
+	std::vector<tensorflow::Tensor> tempTensors;
 	output(imgs, tempTensors);
-	vector<model1Result> tempResults = resultOutput(tempTensors);
+	std::vector<model1Result> tempResults = resultOutput(tempTensors);
 	m_results.insert(m_results.end(), tempResults.begin(), tempResults.end());
 }
 
@@ -67,9 +66,9 @@ int TfModel1::processFirstDataInQueue()
 	tensorflow::Tensor tensorInput = std::move(tensorQueue.front().second);
 	int ret_size = tensorQueue.front().first;
 	tensorQueue.pop();
-	vector<tensorflow::Tensor> outputTensors;
+	std::vector<tensorflow::Tensor> outputTensors;
 	output(tensorInput, outputTensors);
-	vector<model1Result> tempResults = resultOutput(outputTensors);
+	std::vector<model1Result> tempResults = resultOutput(outputTensors);
 	m_results.insert(m_results.end(), tempResults.begin(), tempResults.end());
 	return ret_size;
 }

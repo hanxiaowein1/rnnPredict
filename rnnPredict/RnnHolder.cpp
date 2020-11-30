@@ -1,12 +1,13 @@
 #include "RnnHolder.h"
 #include <algorithm>
 #include <numeric>
+#include "IniConfig.h"
 #include "progress_record.h"
 RnnHolder::RnnHolder()
 {
 }
 
-RnnHolder::RnnHolder(string iniPath)
+RnnHolder::RnnHolder(std::string iniPath)
 {
 	rnnConfig(iniPath);
 }
@@ -15,9 +16,9 @@ RnnHolder::~RnnHolder()
 {
 }
 
-void RnnHolder::rnnConfig(string iniPath)
+void RnnHolder::rnnConfig(std::string iniPath)
 {
-	vector<string> groups{"TfRnn1","TfRnn2", "TfRnn3", "TfRnn4", "TfRnn5", "TfRnn6"};
+	std::vector<std::string> groups{"TfRnn1","TfRnn2", "TfRnn3", "TfRnn4", "TfRnn5", "TfRnn6"};
 	for (auto iter : groups)
 	{
 		//rnnHandle.emplace_back(std::make_unique<TfRnn>(iniPath, iter));
@@ -54,7 +55,7 @@ float RnnHolder::outputSix2(std::vector<float>& rnnResults_f)
 	}
 }
 
-float RnnHolder::outputSix(vector<float>& rnnResults_f)
+float RnnHolder::outputSix(std::vector<float>& rnnResults_f)
 {
 	if (rnnResults_f.size() != 6)
 		return -1;
@@ -64,7 +65,7 @@ float RnnHolder::outputSix(vector<float>& rnnResults_f)
 	float avg2_1 = std::accumulate(rnnResults_f.begin(), rnnResults_f.begin() + 2, 0.0f) / 2;//前两个平均值
 	float avg2_2 = std::accumulate(rnnResults_f.begin() + 2, rnnResults_f.begin() + 4, 0.0f) / 2;//...
 	float avg2_3 = std::accumulate(rnnResults_f.begin() + 4, rnnResults_f.end(), 0.0f) / 2;//...
-	vector<float> avg3_total{ avg2_1, avg2_2, avg2_3 };
+	std::vector<float> avg3_total{ avg2_1, avg2_2, avg2_3 };
 	float max_3 = *std::max_element(avg3_total.begin(), avg3_total.end());
 	float min_3 = *std::min_element(avg3_total.begin(), avg3_total.end());
 
@@ -92,24 +93,30 @@ float RnnHolder::outputSix(vector<float>& rnnResults_f)
 
 float RnnHolder::runRnn(tensorflow::Tensor& tensor)
 {
-	vector<tensorflow::Tensor> rnnInputTensor;
+	std::vector<tensorflow::Tensor> rnnInputTensor;
 	tensorflow::Tensor tensor10 = tensor.Slice(0, 10);
 	tensorflow::Tensor tensor20 = tensor.Slice(0, 20);
 	rnnInputTensor.emplace_back(tensor10);
 	rnnInputTensor.emplace_back(tensor20);
 	rnnInputTensor.emplace_back(tensor);
 
-	vector<std::future<float>> rnnResults(rnnHandle.size());
+	std::vector<std::future<float>> rnnResults(rnnHandle.size());
 	for (int i = 0; i < rnnHandle.size(); i++)
 	{
 		rnnResults[i] = std::async(&RnnHolder::runRnnThread2, this, i, std::ref(rnnInputTensor[i / 2]));
 	}
-	vector<float> rnnResults_f;
+	std::vector<float> rnnResults_f;
 	for (int i = 0; i < rnnResults.size(); i++)
 	{
 		rnnResults_f.emplace_back(rnnResults[i].get());
 	}
-	float retScore = outputSix(rnnResults_f);
+	float retScore = 0.0f;
+	if (IniConfig::instance().getIniInt("Rnn", "mode") == 0) {
+		retScore = outputSix(rnnResults_f);
+	}
+	else {
+		retScore = outputSix2(rnnResults_f);
+	}
 	return retScore;
 }
 
@@ -118,14 +125,14 @@ float RnnHolder::runRnnThread2(int i, tensorflow::Tensor& inputTensor)
 	//对inputTensor要转为1*?*?
 	if (inputTensor.dims() != 2)
 	{
-		cout << "runRnnThread2: inputTensor dims should be 2\n";
+		std::cout << "runRnnThread2: inputTensor dims should be 2\n";
 		return -1;
 	}
 	tensorflow::Tensor tem_tensor_res(
 		tensorflow::DataType::DT_FLOAT, tensorflow::TensorShape({ 1, inputTensor.dim_size(0), inputTensor.dim_size(1) }));
 	std::memcpy(tem_tensor_res.flat<float>().data(), inputTensor.flat<float>().data(),
 		inputTensor.dim_size(0) * inputTensor.dim_size(1) * sizeof(float));
-	vector<float> score = rnnHandle[i]->rnnProcess(tem_tensor_res);
+	std::vector<float> score = rnnHandle[i]->rnnProcess(tem_tensor_res);
 	addStep(1);
 	return score[0];
 }

@@ -2,6 +2,7 @@
 #include "tinyxml.h"
 #include "tinystr.h"
 #include "IniConfig.h"
+#include <windows.h>
 void SlideProc::model1Config()
 {
 	model1Mpp = IniConfig::instance().getIniDouble("Model1", "mpp");

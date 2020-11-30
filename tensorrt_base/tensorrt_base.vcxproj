@@ -18,23 +18,10 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="IniConfig.cpp" />
-    <ClCompile Include="model1.cpp" />
-    <ClCompile Include="ModelProp.cpp" />
-    <ClCompile Include="process_record.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="IniConfig.h" />
-    <ClInclude Include="model1.h" />
-    <ClInclude Include="ModelProp.h" />
-    <ClInclude Include="progress_record.h" />
-    <ClInclude Include="types.h" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{7FC4C3F8-7C70-49D5-83FD-C7954C5EE5AB}</ProjectGuid>
-    <RootNamespace>ModelBase</RootNamespace>
+    <ProjectGuid>{B854274F-A86E-4B45-9609-44C22486DBCF}</ProjectGuid>
+    <RootNamespace>tensorrtbase</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -84,8 +71,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>D:\ThirdParty\opencv341\build\include;D:\Programmer\C++\LibraryPersonal\Library\Common;D:\Programmer\C++\LibraryPersonal\Library\my_multithread;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\ThirdParty\opencv341\build\x64\vc14\lib;D:\Programmer\C++\LibraryPersonal\Library\x64\Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\include;D:\ThirdParty\TensorRT-6.0.1.5\include;D:\ThirdParty\TensorRT-6.0.1.5\samples\common;D:\ThirdParty\TensorRT-6.0.1.5\samples\common\windows;../ModelBase;D:\ThirdParty\opencv341\build\include;D:\Programmer\C++\LibraryPersonal\Library\my_multithread;$(IncludePath)</IncludePath>
+    <LibraryPath>../x64/Release;D:\ThirdParty\opencv341\build\x64\vc14\lib;D:\Programmer\C++\LibraryPersonal\Library\x64\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -102,8 +89,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
@@ -111,6 +98,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\lib\x64\*.lib;D:\ThirdParty\TensorRT-6.0.1.5\lib\*.lib;ModelBase.lib;opencv_world341.lib;my_multithread.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -153,6 +141,17 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="TrBase.h" />
+    <ClInclude Include="TrModel1.h" />
+    <ClInclude Include="TrModel2.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\..\ThirdParty\TensorRT-6.0.1.5\samples\common\logger.cpp" />
+    <ClCompile Include="TrBase.cpp" />
+    <ClCompile Include="TrModel1.cpp" />
+    <ClCompile Include="TrModel2.cpp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

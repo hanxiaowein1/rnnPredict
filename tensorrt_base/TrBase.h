@@ -27,10 +27,13 @@ public:
 	std::shared_ptr<nvinfer1::ICudaEngine> mEngine{ nullptr };
 	samplesCommon::BufferManager* mBuffer{ nullptr };
 	myUniquePtr<nvinfer1::IExecutionContext> mContext{ nullptr };
+
+	std::string m_engine_path;
 public:
 	TrBase(std::string iniPath, std::string group);
 	TrBase(std::string group);
 	virtual ~TrBase() {};
+	bool build(unsigned long long memory, int batchsize, bool set_fp16_flag);
 	virtual bool build(unsigned long long memory, int batchsize);
 	virtual bool infer(vector<cv::Mat>& imgs);
 	virtual void constructNetwork() = 0;
@@ -41,6 +44,16 @@ public:
 
 	virtual bool checkQueueEmpty();
 	virtual void convertMat2NeededDataInBatch(std::vector<cv::Mat>& imgs);
+
+	void saveEngine(std::string engine_path);
+	//文件存在返回true,否则返回false
+	virtual bool checkEngineExists();
+	//模型或配置改变返回true，否则返回false
+	virtual bool checkModelChange() = 0;
+	virtual void initializeEnginePath() = 0;
+	virtual void buildEngine();
+	void buildEngine(std::string engine_path);
+	bool buildContextAndBuffer();
 };
 
 

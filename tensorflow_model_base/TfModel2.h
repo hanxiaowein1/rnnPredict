@@ -17,8 +17,8 @@ public:
 		m_results.clear();
 	}
 private:
-	vector<float> resultOutput(tensorflow::Tensor& tensor);
-	vector<model2Result> resultOutput(vector<tensorflow::Tensor>& tensors);
+	std::vector<float> resultOutput(tensorflow::Tensor& tensor);
+	std::vector<model2Result> resultOutput(std::vector<tensorflow::Tensor>& tensors);
 };
 
 #endif

@@ -16,10 +16,10 @@
 class ModelInputProp
 {
 public:
+	int batchsize;
 	int height;
 	int width;
 	int channel;
-	int batchsize;
 	double mpp;
 public:
 	//从ini文件中初始化
@@ -40,9 +40,10 @@ public:
 
 class ModelProp : public MyThread
 {
-public:
+protected:
 	ModelInputProp inputProp;
 	ModelFileProp fileProp;
+public:
 	std::mutex queue_lock;
 	std::condition_variable tensor_queue_cv;
 

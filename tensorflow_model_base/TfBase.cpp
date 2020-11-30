@@ -20,7 +20,7 @@ void TfBase::construct()
 			fileProp.filepath,
 			&graph_def);
 	if (!load_graph_status.ok()) {
-		cout << "[LoadGraph] load graph failed!\n";
+		std::cout << "[LoadGraph] load graph failed!\n";
 		return;
 	}
 
@@ -38,7 +38,7 @@ void TfBase::construct()
 	}
 }
 
-void TfBase::output(tensorflow::Tensor& tensorInput, vector<tensorflow::Tensor>& tensorOutput)
+void TfBase::output(tensorflow::Tensor& tensorInput, std::vector<tensorflow::Tensor>& tensorOutput)
 {
 	auto status_run = m_session->Run({ { fileProp.inputName,tensorInput } },
 		fileProp.outputNames, {}, &tensorOutput);
@@ -115,9 +115,9 @@ bool TfBase::checkQueueEmpty()
 void showTensor(tensorflow::Tensor& tensor)
 {
 	int dims = tensor.dims();
-	cout << "dims is: " << dims;
+	std::cout << "dims is: " << dims;
 	for (int i = 0; i < dims; i++)
 	{
-		cout << "dims[" << i << "]:" << tensor.dim_size(i) << " ";
+		std::cout << "dims[" << i << "]:" << tensor.dim_size(i) << " ";
 	}
 }

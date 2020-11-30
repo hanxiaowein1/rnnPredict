@@ -1,5 +1,5 @@
 #include "TrModel2.h"
-
+#include "IniConfig.h"
 TrModel2::TrModel2(std::string iniPath, std::string group) : TrBase(iniPath, group)
 {
 	inputProp.initByiniFile(iniPath, "Model2");
@@ -15,6 +15,7 @@ TrModel2::TrModel2(std::string group) : TrBase(group)
 	//这个时候Model1已经构造完成，开始配置mParam
 	//paramConfig({ inputName }, outputNames, { channel, height, width }, batchsize);
 	unsigned long long memory = getMemory(group);
+	initializeEnginePath();
 	TrBase::build(memory, inputProp.batchsize);
 }
 
@@ -27,7 +28,7 @@ void TrModel2::constructNetwork()
 	{
 		mParser->registerOutput(elem.c_str());
 	}
-	mParser->parse(fileProp.filepath.c_str(), *mNetwork, nvinfer1::DataType::kFLOAT);
+	mParser->parse(fileProp.filepath.c_str(), *mNetwork, nvinfer1::DataType::kHALF);
 }
 
 vector<model2Result> TrModel2::resultOutput(int size)
@@ -99,4 +100,21 @@ int TrModel2::processFirstDataInQueue()
 	vector<model2Result> tempResults = resultOutput(tensorBatch);
 	m_results.insert(m_results.end(), tempResults.begin(), tempResults.end());
 	return ret_size;
+}
+
+void TrModel2::initializeEnginePath()
+{
+	if (IniConfig::instance().getIniString("TensorRT", "quantize") == "ON") {
+		m_engine_path = "./engine/model2_fp16.engine";
+	}
+	else {
+		m_engine_path = "./engine/model2.engine";
+	}
+}
+
+bool TrModel2::checkModelChange()
+{
+	if (IniConfig::instance().getIniString("TrModel1", "engine_change_flag") == "False")
+		return false;
+	return true;
 }

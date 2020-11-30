@@ -18,7 +18,7 @@ public:
 		m_results.clear();
 	}
 private:
-	vector<model3Result> resultOutput(const tensorflow::Tensor& tensor);
+	std::vector<model3Result> resultOutput(const tensorflow::Tensor& tensor);
 
 };
 

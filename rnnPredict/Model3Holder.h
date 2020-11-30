@@ -9,9 +9,9 @@ class Model3Holder : public MultiThreadQueue<std::pair<cv::Rect, cv::Mat>>
 {
 public:
 	Model3Holder();
-	Model3Holder(string iniPath);
+	Model3Holder(std::string iniPath);
 	~Model3Holder();
-	vector<PointScore> runModel3(MultiImageRead &mImgRead, vector<Anno>& annos);
+	std::vector<PointScore> runModel3(MultiImageRead &mImgRead, std::vector<Anno>& annos);
 	//void createThreadPool(int threadNum);
 private:
 	//void enterModel2Queue(MultiImageRead& mImgRead);
@@ -19,9 +19,9 @@ private:
 	//void popQueueWithoutLock(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
 	//bool popData(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
 	//bool popModel2Queue(vector<std::pair<cv::Rect, cv::Mat>>& rectMats);
-	vector<PointScore> model3Recom(vector<std::pair<cv::Rect, model3Result>>& xyResults);
+	std::vector<PointScore> model3Recom(std::vector<std::pair<cv::Rect, model3Result>>& xyResults);
 	cv::Point rect2Point(int x, int y, float radius);
-	void model3Config(string iniPath);
+	void model3Config(std::string iniPath);
 	void initPara(MultiImageRead& mImgRead);
 private:
 	//TfModel3* model3Handle = nullptr;
