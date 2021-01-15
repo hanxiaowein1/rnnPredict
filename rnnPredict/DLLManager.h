@@ -12,5 +12,5 @@ public:
 	~DLLManager();
 	bool getState();
 };
-
+ 
 #endif

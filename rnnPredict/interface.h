@@ -15,8 +15,20 @@ typedef unsigned long long* RnnHandle;
 #endif // !TenCExport
 
 RNN_API RnnHandle initialize_handle(const char* iniPath);
-RNN_API bool slideProcess(RnnHandle myHandle, const char* slidePath, Anno *annos, int *len, double* wholeScore, UpdateProgressFunc callback);
+RNN_API bool slideProcess(
+	RnnHandle myHandle, 
+	const char* slidePath, Anno *annos, int *len, double* wholeScore, UpdateProgressFunc callback);
 RNN_API void freeModelMem(RnnHandle myHandle);
 
 
+typedef void* RnnJavaHandle;
+
+RNN_API RnnJavaHandle initializeHandleJava(const char* ini_path);
+RNN_API bool slideProcessJava(
+	RnnJavaHandle handle, 
+	const char* slide_path, 
+	Anno* annos, int* len, double* wholeScore, UpdateProgressFunc callback, const char* savepath);
+RNN_API void freeModelMemJava(RnnJavaHandle handle);
+RNN_API void setCudaVisibleDevices(const char* num);
+RNN_API void setAdditionalPath(const char* path);
 #endif

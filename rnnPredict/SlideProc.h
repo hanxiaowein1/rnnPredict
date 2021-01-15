@@ -18,6 +18,12 @@
 
 class SlideProc
 {
+public:
+	cv::Mat imgL4;
+	//片子的信息(每次去获得十分麻烦，不如先直接初始化，以后好调用)
+	int slideHeight;
+	int slideWidth;
+	double slideMpp;
 private:
 	std::unique_ptr<Model1Holder> m1Holder;
 	std::unique_ptr<Model2Holder> m2Holder;
@@ -29,10 +35,6 @@ private:
 	//SrpSlideRead* m_srpRead = nullptr;
 	//SdpcSlideRead* m_sdpcRead = nullptr;
 	//OpenSlideRead* m_osRead = nullptr;
-	//片子的信息(每次去获得十分麻烦，不如先直接初始化，以后好调用)
-	int slideHeight;
-	int slideWidth;
-	double slideMpp;
 	double slideScore;
 	double slideRatio;
 	//model1和model2的相关信息
@@ -68,7 +70,6 @@ private:
 	int block_width = 8192;//在第0图层读取的图像的大小
 	int read_level = 1;//model1读取的层级
 	int levelBin = 4;
-	cv::Mat imgL4;
 	cv::Mat binImg;
 	int m_thre_col = 20;//rgb的阈值(与mpp无关)
 	int m_thre_vol = 150;//面积的阈值(前景分割)
@@ -91,8 +92,6 @@ private:
 	vector<cv::Rect> get_rects_slide(MultiImageRead& mImgRead);
 	//针对model1在一个块中的裁图
 	vector<cv::Rect> iniRects(int sHeight, int sWidth, int height, int width, int overlap, bool flag_right, bool flag_down);
-	//推荐10个区域(选取前10个区域写入到srp文件里面)
-	vector<Anno> regionProposal(int recom);
 	float runRnn(vector<Anno>& anno, MultiImageRead& mImgRead);
 	void getM2Imgs(std::vector<cv::Rect> rects, std::vector<cv::Mat>& imgs, MultiImageRead& mImgRead);
 	void sortResultsByCoor(vector<regionResult>& results);
@@ -137,6 +136,9 @@ public:
 	//保存model2的去重之后的结果，分数从大到小
 	void saveResult2(string savePath, string saveName);
 	void saveResult3(string savePath, string saveName);
+
+	//推荐recom个区域
+	vector<Anno> regionProposal(int recom);
 	//void saveImg();
 	float getSlideScore()
 	{

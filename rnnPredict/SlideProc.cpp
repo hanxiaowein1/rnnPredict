@@ -487,7 +487,9 @@ void SlideProc::saveImages(vector<PointScore>& pss, int radius, string savePath,
 			point.y = elem.point.y - radius;
 		mImgRead.getTile(0, point.x, point.y, radius * 2, radius * 2, img);
 		string saveName = to_string(i) + "_" + to_string(elem.point.x) + "_" +
-			to_string(elem.point.y) + "_" + to_string(elem.score) + ".tif";
+			to_string(elem.point.y) + "_" + to_string(elem.score) + ".jpg";
+		//在中心点画图
+		cv::circle(img, cv::Point(img.rows / 2, img.cols / 2), 50 / slideMpp, cv::Scalar(0, 0, 255), 4);
 		cv::imwrite(savePath + "\\" + saveName, img);
 		i++;
 	}
@@ -526,6 +528,7 @@ bool SlideProc::runSlide3(const char* slide, string in_savePath)
 	cout << "start model1 process: " << (char*)ctime(&now);
 	//runModel1(mImgRead);
 	rResults = m1Holder->runModel1(mImgRead);
+	imgL4 = m1Holder->thumbnail;
 
 	sortResultsByCoor(rResults);
 	now = time(0);

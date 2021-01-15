@@ -20,7 +20,10 @@ public:
 	AR() = delete;
 	AR(std::string config_path);
 	~AR();
-	void process(std::vector<Anno>& annos, py::array_t<unsigned char> img, int rows, int cols, double mpp, int n);
+	void process(
+		std::vector<Anno>& annos, 
+		py::array_t<unsigned char> img, 
+		int rows, int cols, double mpp, int n, double score_threshold, double remove_threshold);
 };
 
 

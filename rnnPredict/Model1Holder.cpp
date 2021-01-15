@@ -356,9 +356,9 @@ bool Model1Holder::initialize_binImg(MultiImageRead& mImgRead)
 		cout << "get L4 image failed\n";
 		return false;
 	}
-	cv::Mat imgL4;
-	mImgRead.getTile(levelBin, 0, 0, widthL4, heightL4, imgL4);
-	threshold_segmentation(imgL4, binImg, levelBin, m_thre_col, m_thre_vol);
+	//cv::Mat imgL4;
+	mImgRead.getTile(levelBin, 0, 0, widthL4, heightL4, thumbnail);
+	threshold_segmentation(thumbnail, binImg, levelBin, m_thre_col, m_thre_vol);
 	return true;
 }
 

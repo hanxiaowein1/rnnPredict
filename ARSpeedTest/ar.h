@@ -3,7 +3,7 @@
 #define _AILAB_AR_H_
 
 //还是按照原始的方法，一个handle
-typedef unsigned long long ArHandle;
+#include "model_holder.h"
 #include "anno.h"
 #include <vector>
 #include <string>
@@ -31,7 +31,9 @@ struct ARConfig {
 
 AR_API ArHandle initialize_handle(std::string ini_path);
 //AR_API bool slideProcess(ArHandle myHandle, const char* slidePath, Anno* annos, int* len, double* wholeScore, UpdateProgressFunc callback);
-AR_API void process(std::vector<Anno>& annos, ArHandle myHandle, cv::Mat& raw_img, double img_mpp, int n);
+AR_API void process(
+	std::vector<Anno>& annos, ArHandle myHandle, cv::Mat& raw_img, 
+	double img_mpp, int n, double score_threshold, double remove_threshold);
 AR_API void freeModelMem(ArHandle myHandle);
 
 #endif

@@ -18,22 +18,5 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="ar.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="ar_py.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="ar.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ar_py.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="model_holder.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

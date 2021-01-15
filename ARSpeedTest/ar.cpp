@@ -1,8 +1,7 @@
 #include "ar.h"
-#include "IniConfig.h"
-#include "TrModel1.h"
-#include "TrModel2.h"
+
 #include "commonFunction.h"
+#include "model_holder.h"
 #include <iostream>
 #include <filesystem>
 
@@ -14,14 +13,18 @@ extern vector<cv::Rect> iniRects(
 extern void getSubMat(cv::Mat& src, cv::Mat& dst, int center_x, int center_y, int height, int width);
 extern void filterBaseOnPoint(vector<PointScore>& PointScores, int threshold);
 
-struct TrModelHolder {
-	TrModel1* tr_model1 = nullptr;
-	TrModel2* tr_model2 = nullptr;
-};
-
 ArHandle initialize_handle(std::string ini_path)
 {
 	setIniPath(ini_path.c_str());
+	if (IniConfig::instance().getIniString("TensorRT", "USE_TR") == "OFF") {
+		//使用tensorflow
+		TfModelHolder* tf_model_holder = new TfModelHolder;
+		tf_model_holder->tf_model1 = new TfModel1("TfModel1");
+		tf_model_holder->tf_model1->createThreadPool(1);
+		tf_model_holder->tf_model2 = new TfModel2("TfModel2");
+		tf_model_holder->tf_model2->createThreadPool(1);
+		return ArHandle(tf_model_holder);
+	}
 	TrModelHolder* tr_model_holder = new TrModelHolder;
 	tr_model_holder->tr_model1 = new TrModel1("TrModel1");
 	tr_model_holder->tr_model1->createThreadPool(1);
@@ -30,21 +33,13 @@ ArHandle initialize_handle(std::string ini_path)
 	return ArHandle(tr_model_holder);
 }
 
-void process(std::vector<Anno>& annos, ArHandle myHandle, cv::Mat& raw_img, double img_mpp, int n)
+void process(
+	std::vector<Anno>& annos, 
+	ArHandle myHandle, 
+	cv::Mat& raw_img, 
+	double img_mpp, int n, double score_threshold, double remove_threshold)
 {
-	TrModelHolder* tr_model_holder = (TrModelHolder*)myHandle;
-	if (!tr_model_holder)
-	{
-		assert("ArHandle initialize failed\n");
-	}
-	if (!tr_model_holder->tr_model1)
-	{
-		assert("Tensorrt model1 initialize failed\n");
-	}
-	if (!tr_model_holder->tr_model2)
-	{
-		assert("Tensorrt model2 initialize failed\n");
-	}
+	auto model_holder = (ModelHolder*)myHandle;
 	double model1_mpp = 0.586f;
 	int    model1_width = 512;
 	int    model1_height = 512;
@@ -84,8 +79,10 @@ void process(std::vector<Anno>& annos, ArHandle myHandle, cv::Mat& raw_img, doub
 	{
 		imgs.emplace_back(model1_img(elem).clone());
 	}
-	tr_model_holder->tr_model1->processDataConcurrency(imgs);
-	auto results = tr_model_holder->tr_model1->m_results;
+	model_holder->processDataConcurrencyM1(imgs);
+	auto results = model_holder->getModel1Result();
+	//tr_model_holder->tr_model1->processDataConcurrency(imgs);
+	//auto results = tr_model_holder->tr_model1->m_results;
 
 	//model2需要在raw_img上取图像，因此，需要将model1的定位点还原到原始坐标上
 	std::vector<cv::Mat> m2_imgs;
@@ -115,8 +112,10 @@ void process(std::vector<Anno>& annos, ArHandle myHandle, cv::Mat& raw_img, doub
 	if (m2_imgs.size() == 0)
 		return;
 
-	tr_model_holder->tr_model2->processDataConcurrency(m2_imgs);
-	auto results2 = tr_model_holder->tr_model2->m_results;
+	model_holder->processDataConcurrencyM2(m2_imgs);
+	auto results2 = model_holder->getModel2Result();
+	//tr_model_holder->tr_model2->processDataConcurrency(m2_imgs);
+	//auto results2 = tr_model_holder->tr_model2->m_results;
 
 	std::vector<PointScore> model2_ps;
 	auto lambda = [](PointScore ps1, PointScore ps2)->bool {
@@ -138,11 +137,13 @@ void process(std::vector<Anno>& annos, ArHandle myHandle, cv::Mat& raw_img, doub
 		model2_ps.erase(model2_ps.begin() + n, model2_ps.end());
 	}
 	//然后去重(根据50um进行去重)
-	filterBaseOnPoint(model2_ps, 25.0f / img_mpp);
+	filterBaseOnPoint(model2_ps, remove_threshold / img_mpp);
 	//将model2_ps放到anno里面
 	int i = 0;
 	for (auto elem : model2_ps)
 	{
+		if (elem.score < score_threshold)
+			continue;
 		Anno anno;
 		anno.id = i;
 		anno.x = elem.point.x;
@@ -215,7 +216,9 @@ void startRun(ARConfig ar_config, std::string config_path)
 		std::filesystem::create_directories(ar_config.img_save_path);
 	}
 
-	ArHandle handle = initialize_handle(config_path.c_str());
+	//ArHandle handle = initialize_handle(config_path.c_str());
+	ArHandle handle = (ArHandle) new ModelHolder(config_path);
+
 
 	int i = 0;
 	int total = cut_imgs.size();
@@ -225,11 +228,13 @@ void startRun(ARConfig ar_config, std::string config_path)
 		std::vector<Anno> annos;
 		cv::Mat img = cv::imread(cut_img);
 		std::string img_name = getFileName(cut_img);
-		process(annos, handle, img, ar_config.img_mpp, ar_config.max_recom_num);
+		process(annos, handle, img, ar_config.img_mpp, ar_config.max_recom_num, 0.0f, 50.0f);
 		writeAnnos2Img(annos, img, ar_config.img_save_path, img_name, ar_config.img_mpp);
 		i++;
 	}
-	freeModelMem(handle);
+	auto modelHolder = (ModelHolder*)handle;
+	delete modelHolder;
+	//freeModelMem(handle);
 }
 
 int main(int args, char** argv)

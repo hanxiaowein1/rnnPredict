@@ -55,6 +55,8 @@ private:
 	int m_thre_col = 20;//rgb的阈值(与mpp无关)
 	int m_thre_vol = 150;//面积的阈值(前景分割)
 
+public:
+	cv::Mat thumbnail;
 };
 
 #endif
