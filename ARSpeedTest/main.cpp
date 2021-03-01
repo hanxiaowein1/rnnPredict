@@ -76,16 +76,20 @@ void getSubMat(cv::Mat& src, cv::Mat& dst, int center_x, int center_y, int heigh
 	//判断center_x和center_y是否越界
 	//if(center_x > src.rows || center_x < 0 || center_ > )
 
+	//没想到被奇偶搞翻车了，如果是奇数的话，除以二之后会少一个坐标点，因此，如果为奇数的话，就在下面和右边多裁一个坐标点
 
 	int half_height = height / 2;
 	int half_width = width / 2;
+	int height_is_odd = height % 2;
+	int width_is_odd = width % 2;
+	
 	int rows = src.rows;
 	int cols = src.cols;
 	int top = 0, bottom = 0, left = 0, right = 0;
 	top = (center_y - half_height) > 0 ? (center_y - half_height) : 0;
-	bottom = (center_y + half_height - 1) >= rows ? (rows - 1) : (center_y + half_height - 1);
+	bottom = (center_y + half_height - 1 + height_is_odd) >= rows ? (rows - 1) : (center_y + half_height - 1 + height_is_odd);
 	left = (center_x - half_width) > 0 ? (center_x - half_width) : 0;
-	right = (center_x + half_width - 1) >= cols ? (cols - 1) : (center_x + half_width - 1);
+	right = (center_x + half_width - 1 + width_is_odd) >= cols ? (cols - 1) : (center_x + half_width - 1 + width_is_odd);
 
 	cv::Rect rect(left, top, right - left + 1, bottom - top + 1);
 	cv::Mat tmp = src(rect);

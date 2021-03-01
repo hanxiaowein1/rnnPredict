@@ -7,6 +7,7 @@
 #include "TrModel2.h"
 #include "TfModel1.h"
 #include "TfModel2.h"
+#include "RnnHolder.h"
 #include "IniConfig.h"
 
 typedef unsigned long long ArHandle;

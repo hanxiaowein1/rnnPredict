@@ -110,10 +110,18 @@ float RnnHolder::runRnn(tensorflow::Tensor& tensor)
 	{
 		rnnResults_f.emplace_back(rnnResults[i].get());
 	}
+	for (auto result : rnnResults_f)
+	{
+		std::cout << result << " ";
+	}
+	std::cout << std::endl;
 	float retScore = 0.0f;
 	if (IniConfig::instance().getIniInt("Rnn", "mode") == 0) {
 		retScore = outputSix(rnnResults_f);
 	}
+
+
+
 	else {
 		retScore = outputSix2(rnnResults_f);
 	}

@@ -22,6 +22,8 @@ struct ARConfig {
 	std::string img_suffix = "";
 	int max_recom_num = 10;
 	std::string cuda_visible_devices = "0";
+	double remove_threshold = 50.0f;
+	double score_threshold = 0.5f;
 	void showARConfig()
 	{
 		std::cout << "img_mpp:" << img_mpp << ", img_path:" << img_path << ", img_save_path:" << img_save_path

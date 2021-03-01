@@ -219,6 +219,8 @@ bool MultiImageRead::popQueue(std::vector<std::pair<cv::Rect, cv::Mat>>& rectMat
 			else
 			{
 				//如果有线程在运行，那么在锁住队列，等待人来唤醒
+				//这里的解决方案是，重复popQueue，如果这一次由于有任务进来了，但是其他线程已经将任务取走了，那么，
+				//这个线程在wait一秒以后，再次重复popQueue的时候，就会发现任务已经执行完了，就会返回false;
 				data_lock.lock();
 				using namespace std;
 				cv_queue_has_elem.wait_for(data_lock, 1000ms, [this] {

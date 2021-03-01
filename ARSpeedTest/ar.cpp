@@ -4,6 +4,7 @@
 #include "model_holder.h"
 #include <iostream>
 #include <filesystem>
+#include <map>
 
 extern vector<cv::Rect> iniRects(
 	int sHeight, int sWidth, int height, int width,
@@ -40,19 +41,19 @@ void process(
 	double img_mpp, int n, double score_threshold, double remove_threshold)
 {
 	auto model_holder = (ModelHolder*)myHandle;
-	double model1_mpp = 0.586f;
-	int    model1_width = 512;
-	int    model1_height = 512;
-	double model2_mpp = 0.293f;
-	int    model2_width = 256;
-	int    model2_height = 256;
+	double model1_mpp = IniConfig::instance().getIniDouble("Model1", "mpp");
+	int    model1_width = IniConfig::instance().getIniInt("Model1", "width");
+	int    model1_height = IniConfig::instance().getIniInt("Model1", "height");
+	double model2_mpp = IniConfig::instance().getIniDouble("Model2", "mpp");
+	int    model2_width = IniConfig::instance().getIniInt("Model2", "width");
+	int    model2_height = IniConfig::instance().getIniInt("Model2", "height");
 
 	auto start = std::chrono::system_clock::now();
 
 
 	//先获取model1的图像
 	cv::Mat model1_img;
-	if (img_mpp != 0.586f)
+	if (img_mpp != model1_mpp)
 	{
 		int new_height = raw_img.rows / float(model1_mpp / img_mpp);
 		int new_width = raw_img.cols / float(model1_mpp / img_mpp);
@@ -61,11 +62,11 @@ void process(
 	else
 		model1_img = raw_img;
 	//如果model1_img的宽高并没有达到512，那么我就补，哪边不够补哪边
-	if (model1_img.rows < 512 || model1_img.cols < 512)
+	if (model1_img.rows < model1_height || model1_img.cols < model1_width)
 	{
 		//开始补
-		int new_height = model1_img.rows < 512 ? 512 : model1_img.rows;
-		int new_width = model1_img.cols < 512 ? 512 : model1_img.cols;
+		int new_height = model1_img.rows < model1_height ? model1_height : model1_img.rows;
+		int new_width = model1_img.cols < model1_width ? model1_width : model1_img.cols;
 		cv::Mat white_mat(new_height, new_width, CV_8UC3, cv::Scalar(0, 0, 0));
 		model1_img.copyTo(white_mat(cv::Rect(0, 0, model1_img.cols, model1_img.rows)));
 		model1_img = white_mat.clone();
@@ -73,7 +74,8 @@ void process(
 	//然后开始正常的计算，求定位以及坐标点
 
 	int rows, cols;
-	std::vector<cv::Rect> rects = iniRects(512, 512, model1_img.rows, model1_img.cols, 128, true, true, rows, cols);
+	std::vector<cv::Rect> rects = iniRects(
+		model1_height, model1_width, model1_img.rows, model1_img.cols, model1_height / 4, true, true, rows, cols);
 	std::vector<cv::Mat> imgs;
 	for (auto elem : rects)
 	{
@@ -104,7 +106,7 @@ void process(
 
 				getSubMat(raw_img, temp_img, center_x, center_y, get_height, get_width);
 				cv::resize(temp_img, temp_img, cv::Size(model2_width, model2_height));
-				m2_points.emplace_back(cv::Point(center_x, center_y));
+				m2_points.emplace_back(cv::Point(center_x, center_y)																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																	);
 				m2_imgs.emplace_back(std::move(temp_img));
 			}
 		}
@@ -179,7 +181,7 @@ void writeAnnos2Img(std::vector<Anno> annos,
 		cv::circle(img, cv::Point(elem.x, elem.y), 25 / mpp, cv::Scalar(0, 0, 255), 4);
 		cv::putText(img, std::to_string(elem.score), cv::Point(elem.x, elem.y), 1, 1, cv::Scalar(0, 255, 0), 2);
 	}
-	cv::imwrite(img_save_path + save_name, img);
+	cv::imwrite(img_save_path + "\\" + save_name, img);
 }
 
 void agetARConfigByPara(ARConfig& ar_config, char** argv)
@@ -202,37 +204,188 @@ void getARConfig(ARConfig& ar_config, std::string config_path)
 	ar_config.img_suffix = IniConfig::instance().getIniString("AR", "img_suffix");
 	ar_config.max_recom_num = IniConfig::instance().getIniInt("AR", "max_recom_num");
 	ar_config.cuda_visible_devices = IniConfig::instance().getIniString("AR", "CUDA_VISIBLE_DEVICES");
+	ar_config.remove_threshold = IniConfig::instance().getIniDouble("AR", "remove_threshold");
+	ar_config.score_threshold = IniConfig::instance().getIniDouble("AR", "score_threshold");
 }
 
 //发现不仅仅有ar的配置，还包含了TRT的配置，因此还是要传入配置文件的路径，否则你想一个个的传入TRT的路径和配置吗？
 void startRun(ARConfig ar_config, std::string config_path)
 {
+	using namespace std;
 	_putenv_s("CUDA_VISIBLE_DEVICES", ar_config.cuda_visible_devices.c_str());
-	std::vector<std::string> cut_imgs;
-	getFiles(ar_config.img_path, cut_imgs, ar_config.img_suffix);
-
-	if (!std::filesystem::exists(ar_config.img_save_path))
+	ArHandle handle = (ArHandle) new ModelHolder(config_path);
+	RnnHolder* rnnHolder = new RnnHolder(config_path);
+	std::string slidePath = ar_config.img_path;
+	std::string savePath = ar_config.img_save_path;
+	if (std::filesystem::exists(savePath)) {
+		std::filesystem::create_directories(savePath);
+	}
+	//编写一个能够计算所有文件夹的程序
+	vector<string> img_dirs;
+	img_dirs.emplace_back(slidePath);
+	for (auto& p : std::filesystem::recursive_directory_iterator(ar_config.img_path)) 
 	{
-		std::filesystem::create_directories(ar_config.img_save_path);
+		if (std::filesystem::is_directory(p)) {
+			img_dirs.emplace_back(p.path().string());
+		}
+	}
+
+	vector<string> img_suffixs{ "tif", "png", "PNG", "jpg", "jpeg", "bmp" };
+
+	for (auto dir : img_dirs)
+	{
+		std::cout << "running " << dir << std::endl;
+		auto position = dir.find(slidePath);
+		string dir_cp = dir;
+		dir_cp.erase(position, ar_config.img_path.size());
+		string temp_save_path = savePath + dir_cp;
+		if (!std::filesystem::exists(temp_save_path)) {
+			std::filesystem::create_directories(temp_save_path);
+		}
+		else 
+		{
+			//检查是否有去重文件，如果有则跳过该张切片
+			if (filesystem::exists(temp_save_path + "\\" + "rnn.txt"))
+			{
+				continue;
+			}
+		}
+		std::vector<std::string> cut_imgs;
+		for (auto img_suffix : img_suffixs)
+		{
+			std::vector<std::string> temp_imgs = getFilesBySuffix(dir, img_suffix);
+			cut_imgs.insert(cut_imgs.end(), temp_imgs.begin(), temp_imgs.end());
+		}
+		//getFiles(dir, cut_imgs, ar_config.img_suffix);
+
+		vector<pair<string, Anno>> all_img_anno;
+
+		int i = 0;
+		int total = cut_imgs.size();
+		for (auto cut_img : cut_imgs)
+		{
+			//pair<string, Anno> img_annos;
+			std::cout << i << ":" << total << " ";
+			std::vector<Anno> annos;
+			cv::Mat img = cv::imread(cut_img);
+			std::string img_name = getFileName(cut_img);
+			process(
+				annos,
+				handle,
+				img,
+				ar_config.img_mpp,
+				ar_config.max_recom_num,
+				ar_config.score_threshold,
+				ar_config.remove_threshold);
+
+			for (auto anno : annos)
+			{
+				pair<string, Anno> img_anno;
+				img_anno.first = cut_img;
+				img_anno.second = anno;
+				all_img_anno.emplace_back(img_anno);
+			}
+			//writeAnnos2Img(annos, img, ar_config.img_save_path, img_name, ar_config.img_mpp);
+			i++;
+		}
+		//再将这个all_img_annos进行排序(从大到小进行排序)
+		auto lambda = [](pair<string, Anno> a, pair<string, Anno> b) -> bool {
+			if (a.second.score > b.second.score) {
+				return true;
+			}
+			return false;
+		};
+		std::sort(all_img_anno.begin(), all_img_anno.end(), lambda);
+		ofstream rnn_txt;
+		rnn_txt.open(temp_save_path + "\\" + "rnn.txt");
+		if (all_img_anno.size() < 30)
+		{
+			std::cout << "not enough annos for compute rnn!" << std::endl;
+			rnn_txt << "0";
+			rnn_txt.close();
+			continue;
+		}
+		else
+		{
+			all_img_anno.erase(all_img_anno.begin() + 30, all_img_anno.end());
+		}
+		map<string, std::vector<Anno>> recom_img_annos;
+		//将前十个annos的图像送入rnn中进行计算得到结果
+		vector<cv::Mat> model2_imgs;
+		int count = 0;
+
+		for (auto elem : all_img_anno)
+		{
+			auto img_path = elem.first;
+			auto anno = elem.second;
+			auto raw_img = cv::imread(img_path);
+
+			double model2_mpp    = IniConfig::instance().getIniDouble("Model2", "mpp");;
+			int    model2_width  = IniConfig::instance().getIniInt("Model2", "width");
+			int    model2_height = IniConfig::instance().getIniInt("Model2", "height");
+			//为了和lsb的逻辑一致，这里先将图像resize到model2的分辨率下
+			int dst_height = raw_img.rows * (ar_config.img_mpp / model2_mpp);
+			int dst_width = raw_img.cols * (ar_config.img_mpp / model2_mpp);
+			//cv::resize(raw_img, raw_img, cv::Size(dst_width, dst_height));
+
+			double ratio = ar_config.img_mpp / model2_mpp;
+			cv::resize(raw_img, raw_img, cv::Size(0, 0), ratio, ratio);
+
+			int center_x = anno.x * (ar_config.img_mpp / model2_mpp);
+			int center_y = anno.y * (ar_config.img_mpp / model2_mpp);
+			cv::Mat temp_img;
+			getSubMat(raw_img, temp_img, center_x, center_y, model2_height, model2_width);
+
+
+			//int get_height = model2_height * float(model2_mpp / ar_config.img_mpp);
+			//int get_width = model2_width * float(model2_mpp / ar_config.img_mpp);
+			//cv::Mat temp_img;
+			//getSubMat(raw_img, temp_img, anno.x, anno.y, get_height, get_width);
+			//cv::resize(temp_img, temp_img, cv::Size(model2_width, model2_height));
+
+			//把这些图像保存到文件夹中
+			std::string model2InputSavePath = temp_save_path + "\\model2";
+			if (!std::filesystem::exists(model2InputSavePath)) {
+				std::filesystem::create_directories(model2InputSavePath);
+			}
+			cv::imwrite(model2InputSavePath + "\\" + to_string(count) + "_" + to_string(anno.score) + ".tif", temp_img);
+			model2_imgs.emplace_back(std::move(temp_img));
+
+			if (count < 10)
+			{
+				recom_img_annos[img_path].emplace_back(elem.second);
+			}
+			count++;
+		}
+		for (auto elem : recom_img_annos)
+		{
+			cv::Mat img = cv::imread(elem.first);
+			auto img_name = getFileName(elem.first);
+			writeAnnos2Img(elem.second, img, temp_save_path, img_name, ar_config.img_mpp);
+			count++;
+		}
+		//为了防止重复计算，在这里去重
+
+
+		auto modelHolder = (ModelHolder*)handle;
+
+		modelHolder->processDataConcurrencyM2(model2_imgs);
+		auto results = modelHolder->getModel2Result();
+
+		
+		float rnnScore = rnnHolder->runRnn(results);
+		std::cout << "rnnScore is" << rnnScore << std::endl;
+		rnn_txt << rnnScore;
+		rnn_txt.close();
+
 	}
 
 	//ArHandle handle = initialize_handle(config_path.c_str());
-	ArHandle handle = (ArHandle) new ModelHolder(config_path);
 
-
-	int i = 0;
-	int total = cut_imgs.size();
-	for (auto cut_img : cut_imgs)
-	{
-		std::cout << i << ":" << total << " ";
-		std::vector<Anno> annos;
-		cv::Mat img = cv::imread(cut_img);
-		std::string img_name = getFileName(cut_img);
-		process(annos, handle, img, ar_config.img_mpp, ar_config.max_recom_num, 0.0f, 50.0f);
-		writeAnnos2Img(annos, img, ar_config.img_save_path, img_name, ar_config.img_mpp);
-		i++;
-	}
+	//保存着img的annos的vector
+	//vector<pair<string, vector<Anno>>> all_img_annos;
 	auto modelHolder = (ModelHolder*)handle;
+	delete rnnHolder;
 	delete modelHolder;
 	//freeModelMem(handle);
 }
