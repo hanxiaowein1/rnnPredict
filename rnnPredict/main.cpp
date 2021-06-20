@@ -459,38 +459,38 @@ void startRun(const char* iniPath)
 //	return 0;
 //}
 
-int main(int args, char* argv[])
-{
-	if (args > 2)
-	{
-		cout << "usage: exe IniPath" << endl;
-		return -1;
-	}
-	else if (args == 1)
-	{
-		_putenv_s("CUDA_VISIBLE_DEVICES", "0");
-		string iniPath = "./config.ini";
-		setIniPath(iniPath);
-		cout << IniConfig::instance().getIniString("TfModel1", "path") << endl;
-		DWORD dirType = GetFileAttributesA(iniPath.c_str());
-		if (dirType == INVALID_FILE_ATTRIBUTES) {
-			cout << "ini file doesn't exist!" << endl;
-			return -1;
-		}
-		startRun(iniPath.c_str());
-		system("pause");
-		return 0;
-	}
-	else
-	{
-		DWORD dirType = GetFileAttributesA(argv[1]);
-		if (dirType == INVALID_FILE_ATTRIBUTES) {
-			cout << "ini file doesn't exist!" << endl;
-			return -1;
-		}
-		setIniPath(argv[1]);
-		startRun(argv[1]);
-		return 0;
-	}
-	return 0;
-}
+//int main(int args, char* argv[])
+//{
+//	if (args > 2)
+//	{
+//		cout << "usage: exe IniPath" << endl;
+//		return -1;
+//	}
+//	else if (args == 1)
+//	{
+//		_putenv_s("CUDA_VISIBLE_DEVICES", "0");
+//		string iniPath = "./config.ini";
+//		setIniPath(iniPath);
+//		cout << IniConfig::instance().getIniString("TfModel1", "path") << endl;
+//		DWORD dirType = GetFileAttributesA(iniPath.c_str());
+//		if (dirType == INVALID_FILE_ATTRIBUTES) {
+//			cout << "ini file doesn't exist!" << endl;
+//			return -1;
+//		}
+//		startRun(iniPath.c_str());
+//		system("pause");
+//		return 0;
+//	}
+//	else
+//	{
+//		DWORD dirType = GetFileAttributesA(argv[1]);
+//		if (dirType == INVALID_FILE_ATTRIBUTES) {
+//			cout << "ini file doesn't exist!" << endl;
+//			return -1;
+//		}
+//		setIniPath(argv[1]);
+//		startRun(argv[1]);
+//		return 0;
+//	}
+//	return 0;
+//}

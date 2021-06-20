@@ -30,7 +30,7 @@ MultiImageRead::~MultiImageRead()
 		if (thread.joinable())
 			thread.join();
 	}
-	std::cout << "所有线程已经结束\n";
+	std::cout << "MultiImage deconstruct\n";
 }
 
 

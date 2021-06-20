@@ -43,7 +43,7 @@ void addStep(int step)
 	{
 		if (!wrong_flag)
 		{
-			std::cerr << "stage has not been initialized!\n";
+			//std::cerr << "stage has not been initialized!\n";
 		}
 		wrong_flag = true;
 	}

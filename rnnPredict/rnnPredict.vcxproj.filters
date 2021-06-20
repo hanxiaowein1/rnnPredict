@@ -90,6 +90,9 @@
     <ClCompile Include="DetectDll.cpp">
       <Filter>源文件\Model</Filter>
     </ClCompile>
+    <ClCompile Include="paper.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MultiImageRead.h">

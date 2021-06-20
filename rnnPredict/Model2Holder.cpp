@@ -82,11 +82,13 @@ void Model2Holder::model2Process(std::vector<cv::Mat>& imgs, std::vector<model2R
 	if (!use_tr)
 	{
 		model2Handle.first->processDataConcurrency(imgs);
+		std::cout << "use tf\n";
 		results = model2Handle.first->m_results;
 	}
 	else
 	{
 		model2Handle.second->processDataConcurrency(imgs);
+		std::cout << "use tf\n";
 		results = model2Handle.second->m_results;
 	}
 }

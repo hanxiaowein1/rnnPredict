@@ -72,6 +72,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>D:\ThirdParty\opencv341\build\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\include;D:\ThirdParty\Eigen;D:\libraryBuild\SdpcSDK\SdpcSDK;D:\libraryBuild\openslide-win64-20201024-local\include\openslide;D:\ThirdParty\TensorRT-6.0.1.5\include;D:\ThirdParty\TensorRT-6.0.1.5\samples\common;D:\ThirdParty\TensorRT-6.0.1.5\samples\common\windows;D:\Programmer\C++\LibraryPersonal\SlideFactory\SlideFactory;D:\Programmer\C++\LibraryPersonal\Library\Common;D:\libraryBuild\pytorch;D:\libraryBuild\tensorflow1.10.0_build;D:\library\tensorflow-1.10.0;D:\library\tensorflow-1.10.0\third_party\gpus;D:\library\tensorflow-1.10.0\tensorflow;D:\libraryBuild\tensorflow1.10.0_build\nsync\install\include;D:\libraryBuild\tensorflow1.10.0_build\grpc\src\grpc\include;D:\libraryBuild\tensorflow1.10.0_build\protobuf\src\protobuf\src;../ModelBase;D:\Programmer\C++\LibraryPersonal\Library\my_multithread;..\tensorflow_model_base;../tensorrt_base;$(IncludePath)</IncludePath>
     <LibraryPath>D:\ThirdParty\opencv341\build\x64\vc14\lib;D:\libraryBuild\SdpcSDK\x64\Release;D:\libraryBuild\openslide-win64-20201024-local\lib;D:\Programmer\C++\LibraryPersonal\SlideFactory\x64\Release;D:\Programmer\C++\LibraryPersonal\Common\x64\Release;D:\libraryBuild\tensorflow1.10.0_build\Release;D:\libraryBuild\tensorflow1.10.0_build\protobuf\src\protobuf\Release;../x64/Release;D:\Programmer\C++\LibraryPersonal\Library\x64\Release;$(LibraryPath)</LibraryPath>
+    <TargetName>$(ProjectName)_after</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -112,7 +113,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NOMINMAX;COMPILER_MSVC;_RNNFUNC_EXPORT_;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -131,6 +132,7 @@
     <ClCompile Include="Model2Holder.cpp" />
     <ClCompile Include="Model3Holder.cpp" />
     <ClCompile Include="MultiImageRead.cpp" />
+    <ClCompile Include="paper.cpp" />
     <ClCompile Include="RnnHolder.cpp" />
     <ClCompile Include="SlideProc.cpp" />
     <ClCompile Include="SlideProc_old.cpp" />
